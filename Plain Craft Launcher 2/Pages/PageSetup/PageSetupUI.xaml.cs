@@ -566,6 +566,8 @@ public partial class PageSetupUI
     // 主题
     private void ThemeColor_Change(object senderRaw, SelectionChangedEventArgs e)
     {
+        // 由取色器自动切换主题时同步下拉框，会再次触发本事件，需跳过避免递归
+        if (_isSyncingThemeCombo) return;
         var sender = (MyComboBox)senderRaw;
         SetByTag(sender.Tag?.ToString(), sender.SelectedIndex);
         UpdateCustomColorVisibility();
@@ -590,9 +592,11 @@ public partial class PageSetupUI
     // 自定义主题色输入
     private void UpdateCustomColorVisibility()
     {
-        var isCustom = ThemeService.CurrentTheme == ColorTheme.Custom;
+        // 取色器面板始终可见：用户随时能在调色板上试色，
+        // 改动颜色时会自动切换到「自定义」主题（见 _AfterCustomColorChanged），
+        // 不必先在下拉框里翻到「自定义」才能看到调色板
         if (PanCustomColor is not null)
-            PanCustomColor.Visibility = isCustom ? Visibility.Visible : Visibility.Collapsed;
+            PanCustomColor.Visibility = Visibility.Visible;
     }
 
     private bool _isReloadingCustomColor;
@@ -663,10 +667,35 @@ public partial class PageSetupUI
 
     private void _AfterCustomColorChanged()
     {
-        // 配置变更事件会自动刷新资源，但仅在当前主题为自定义时；否则手动触发一次
+        // 调色板一改动就自动切到「自定义」主题，让改动立即生效。
+        // 否则用户在当前是「天蓝」等预设主题时拖色板，界面纹丝不动，会以为坏了。
         if (ThemeService.CurrentTheme != ColorTheme.Custom)
-            ThemeManager.ThemeRefresh();
+        {
+            Config.Preference.Theme.LightColor = ColorTheme.Custom;
+            Config.Preference.Theme.DarkColor = ColorTheme.Custom;
+            SyncThemeComboSelection();
+        }
+        ThemeManager.ThemeRefresh();
         RefreshThemeColorPreview();
+    }
+
+    /// <summary>
+    ///     把浅色/深色主题下拉框同步到当前配置值（不触发选择变更逻辑）。
+    /// </summary>
+    private bool _isSyncingThemeCombo;
+
+    private void SyncThemeComboSelection()
+    {
+        _isSyncingThemeCombo = true;
+        try
+        {
+            ComboLightColor.SelectedIndex = (int)Config.Preference.Theme.LightColor;
+            ComboDarkColor.SelectedIndex = (int)Config.Preference.Theme.DarkColor;
+        }
+        finally
+        {
+            _isSyncingThemeCombo = false;
+        }
     }
 
     private void Gradient_Change(object sender, bool user)

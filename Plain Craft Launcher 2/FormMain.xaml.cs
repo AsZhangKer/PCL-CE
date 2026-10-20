@@ -632,6 +632,7 @@ public partial class FormMain
     private void UpdateTitleSelectIndicator(int index, bool animate = true)
     {
         if (ShapeTitleSelectLine is null) return;
+        RefreshTitleSelectUnderlines();
         _titleSelectIndex = index;
         if (index < 0)
         {
@@ -668,6 +669,28 @@ public partial class FormMain
                     ease: new ModAnimation.AniEaseOutFluent(ModAnimation.AniEasePower.Weak)),
                 ModAnimation.AaOpacity(ShapeTitleSelectLine, 0.95d - ShapeTitleSelectLine.Opacity, 140)
             }, "FrmMain TitleSelect");
+    }
+
+    /// <summary>
+    ///     三条标签的静态底线与滑动白线等宽（文字宽 + 两侧各 12px）。
+    ///     等宽后白线滑到某个标签时能完整盖住它的暗线，看起来就是“同一根线亮起来了”。
+    /// </summary>
+    private void RefreshTitleSelectUnderlines()
+    {
+        for (var index = 0; index <= 2; index++)
+        {
+            var (_, label) = GetTitleSelectElements(index);
+            System.Windows.Shapes.Rectangle? line = index switch
+            {
+                0 => LineTitleSelectLaunch,
+                1 => LineTitleSelectDownload,
+                2 => LineTitleSelectSetup,
+                _ => null
+            };
+            if (label is null || line is null) continue;
+            if (label.ActualWidth <= 0) continue;
+            line.Width = label.ActualWidth + 24d;
+        }
     }
 
     /// <summary>
