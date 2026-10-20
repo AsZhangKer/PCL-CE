@@ -1187,7 +1187,37 @@ public static class ModLaunch
         var resultJson = (JsonObject)ModBase.GetJson(result);
         var xSTSToken = resultJson["Token"].ToString();
         var uhs = resultJson["DisplayClaims"]["xui"][0]["uhs"].ToString();
+        // 诊断：解码 XSTS Token 的 claims，确认 aud 是否为 Minecraft API 依赖方、有效期是否正常。
+        // Mojang 在 login_with_xbox 返回 "Invalid app registration" 时，根因只可能出在这些字段上。
+        LogXstsTokenClaims(xSTSToken, uhs);
         return new[] { xSTSToken, uhs };
+    }
+
+    /// <summary>
+    ///     诊断用：打印 XSTS Token 的 JWT 负载与 UHS，便于定位正版登录被拒的原因。
+    /// </summary>
+    private static void LogXstsTokenClaims(string token, string uhs)
+    {
+        try
+        {
+            var parts = token.Split('.');
+            if (parts.Length < 2)
+            {
+                ModBase.Log($"[Launch] XSTS Token 格式异常：段数 {parts.Length}", ModBase.LogLevel.Debug);
+                return;
+            }
+
+            // JWT 使用 base64url，需补齐 padding 后再解码
+            var payload = parts[1].Replace('-', '+').Replace('_', '/');
+            payload = payload.PadRight(payload.Length + (4 - payload.Length % 4) % 4, '=');
+            var claims = Encoding.UTF8.GetString(Convert.FromBase64String(payload));
+            ModBase.Log($"[Launch] XSTS 诊断：uhs={uhs}，Token 长度={token.Length}，Claims={claims}",
+                ModBase.LogLevel.Debug);
+        }
+        catch (Exception ex)
+        {
+            ModBase.Log(ex, "[Launch] XSTS Token 解析失败");
+        }
     }
 
     /// <summary>
@@ -1202,52 +1232,51 @@ public static class ModLaunch
             throw new ArgumentException("传入的 XSTSToken 或者 UHS 错误", nameof(tokens));
         var requestData = new Dictionary<string, string> { { "identityToken", $"XBL3.0 x={tokens[1]};{tokens[0]}" } };
         string result;
-        try
+        using (var response = HttpRequest
+                   .CreatePost("https://api.minecraftservices.com/authentication/login_with_xbox")
+                   .WithJsonContent(requestData)
+                   .SendAsync()
+                   .GetAwaiter()
+                   .GetResult())
         {
-            using (var response = HttpRequest
-                       .CreatePost("https://api.minecraftservices.com/authentication/login_with_xbox")
-                       .WithJsonContent(requestData)
-                       .SendAsync()
-                       .GetAwaiter()
-                       .GetResult())
+            // 不论成功与否都先读完响应体：Mojang 在 403 时会给出具体原因，
+            // 只靠状态码无法区分「IP 风控」「XSTS 无效」「账号受限」等情况
+            result = response.AsString();
+            if (!response.IsSuccess)
             {
-                response.EnsureSuccessStatusCode();
-                result = response.AsString();
-            }
-        }
-        catch (HttpRequestException ex)
-        {
-            var message = ex.Message;
-            if (ex.StatusCode.Equals(HttpStatusCode.TooManyRequests))
-            {
-                ModBase.Log(ex, "正版验证 Step 4 汇报 429");
-                throw new Exception(Lang.Text("Minecraft.Launch.Login.Microsoft.TooManyRequests"));
-            }
+                var statusCode = response.StatusCode;
+                ModBase.Log(
+                    $"[Launch] 正版验证 Step 4 失败：{(int)statusCode} {statusCode}，响应体：{result}",
+                    ModBase.LogLevel.Debug);
 
-            if (ex.StatusCode is { } arg1 && arg1 == HttpStatusCode.Forbidden)
-            {
-                ModBase.Log(ex, "正版验证 Step 4 汇报 403");
-                throw new Exception(Lang.Text("Minecraft.Launch.Login.Microsoft.AbnormalIp"));
-            }
+                if (statusCode == HttpStatusCode.TooManyRequests)
+                    throw new Exception(Lang.Text("Minecraft.Launch.Login.Microsoft.TooManyRequests"));
 
-            ModProfile.ProfileLog("正版验证 Step 4/6 获取 MC AccessToken 失败：" + ex);
-            var isIgnore = false;
-            ModBase.RunInUiWait(() =>
-            {
-                if (!isLaunching)
-                    return;
-                if (ModMain.MyMsgBox(
-                        Lang.Text("Minecraft.Launch.Login.RefreshAccountFailed.Message"),
-                        Lang.Text("Minecraft.Launch.Login.RefreshAccountFailed.Title"), Lang.Text("Minecraft.Launch.Login.Continue"), Lang.Text("Common.Action.Cancel")) == 1)
-                    isIgnore = true;
-            });
-            if (isIgnore)
-            {
-                return "Ignore";
-                return default;
-            }
+                if (statusCode == HttpStatusCode.Forbidden)
+                {
+                    // Mojang 对新应用实行白名单审核：未通过审核的 ClientID 会返回
+                    // "Invalid app registration"，与 IP 风控完全无关，必须区分提示，
+                    // 否则用户会被误导去反复折腾网络和加速器
+                    if (result.Contains("Invalid app registration", StringComparison.OrdinalIgnoreCase))
+                        throw new Exception(Lang.Text("Minecraft.Launch.Login.Microsoft.ClientNotRegistered"));
+                    throw new Exception(Lang.Text("Minecraft.Launch.Login.Microsoft.AbnormalIp"));
+                }
 
-            throw;
+                ModProfile.ProfileLog($"正版验证 Step 4/6 获取 MC AccessToken 失败：{(int)statusCode}");
+                var isIgnore = false;
+                ModBase.RunInUiWait(() =>
+                {
+                    if (!isLaunching)
+                        return;
+                    if (ModMain.MyMsgBox(
+                            Lang.Text("Minecraft.Launch.Login.RefreshAccountFailed.Message"),
+                            Lang.Text("Minecraft.Launch.Login.RefreshAccountFailed.Title"), Lang.Text("Minecraft.Launch.Login.Continue"), Lang.Text("Common.Action.Cancel")) == 1)
+                        isIgnore = true;
+                });
+                if (isIgnore) return "Ignore";
+
+                throw new Exception($"正版验证 Step 4 失败：{(int)statusCode} {statusCode}");
+            }
         }
 
         var resultJson = (JsonObject)ModBase.GetJson(result);

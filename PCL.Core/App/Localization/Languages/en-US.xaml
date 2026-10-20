@@ -2245,6 +2245,7 @@
     <!-- Minecraft.Launch.Login.Microsoft -->
 
     <sys:String x:Key="Minecraft.Launch.Login.Microsoft.AbnormalIp">Abnormal login attempts from this IP.&#xA;Please check your network settings or try again later.</sys:String>
+    <sys:String x:Key="Minecraft.Launch.Login.Microsoft.ClientNotRegistered">The ClientID in use has not been approved by Mojang.&#xA;Mojang now requires third-party launchers to be added to an allow list before accessing the login API, and newly registered apps are not included.&#xA;Apply at https://aka.ms/AppRegInfo or switch to an approved ClientID in Settings.</sys:String>
     <sys:String x:Key="Minecraft.Launch.Login.Microsoft.Banned">This account appears to have been banned by Microsoft and cannot log in.</sys:String>
     <sys:String x:Key="Minecraft.Launch.Login.Microsoft.ChangeBirthDate.Message">Please modify the account's date of birth on the opened webpage (change to at least 18 years old).&#xA;Wait one minute after the modification is successful, then return to PCL CE and you can log in normally!</sys:String>
     <sys:String x:Key="Minecraft.Launch.Login.Microsoft.ChangeBirthDate.SupportMessage">Please modify the account's date of birth on the opened webpage (change to at least 18 years old).&#xA;Wait one minute after the modification is successful, then return to PCL CE and you can log in normally!</sys:String>

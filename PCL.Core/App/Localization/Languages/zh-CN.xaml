@@ -2245,6 +2245,7 @@
     <!-- Minecraft.Launch.Login.Microsoft -->
 
     <sys:String x:Key="Minecraft.Launch.Login.Microsoft.AbnormalIp">当前 IP 的登录尝试异常。&#xA;如果你使用了 VPN 或加速器，请把它们关掉或更换节点后再试！</sys:String>
+    <sys:String x:Key="Minecraft.Launch.Login.Microsoft.ClientNotRegistered">当前使用的登录 ClientID 未通过 Mojang 的应用审核。&#xA;Mojang 已要求第三方启动器申请白名单后才能访问登录接口，新注册的应用默认不在名单内。&#xA;请到 https://aka.ms/AppRegInfo 提交申请，或在设置中改用已通过审核的 ClientID。</sys:String>
     <sys:String x:Key="Minecraft.Launch.Login.Microsoft.Banned">该账号似乎已被微软封禁，无法登录。</sys:String>
     <sys:String x:Key="Minecraft.Launch.Login.Microsoft.ChangeBirthDate.Message">请在打开的网页中修改账号的出生日期（至少改为 18 岁以上）。&#xA;在修改成功后等待一分钟，然后再回到 PCL CE，就可以正常登录了！</sys:String>
     <sys:String x:Key="Minecraft.Launch.Login.Microsoft.ChangeBirthDate.SupportMessage">请在打开的网页中修改账号的出生日期（至少改为 18 岁以上）。&#xA;在修改成功后等待一分钟，然后再回到 PCL CE，就可以正常登录了！</sys:String>
