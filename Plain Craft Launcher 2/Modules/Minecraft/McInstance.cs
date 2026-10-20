@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Text.RegularExpressions;
@@ -501,7 +501,12 @@ public class McInstance
 
                                 if (!Equals(inheritInstanceName, ""))
                                 {
-                                    var inheritInstance = new McInstance(inheritInstanceName?.ToString() ?? "");
+                                    // 依赖实例必须在自己所在的文件夹里查找：
+                                    // 若只传实例名，McInstance 会按「当前 Minecraft 文件夹」解析，
+                                    // 读取其它文件夹的实例时就会找不到依赖而报错
+                                    var inheritInstance = new McInstance(Path.Combine(
+                                        ModBase.GetPathFromFullPath(PathInstance),
+                                        inheritInstanceName?.ToString() ?? ""));
                                     // 继续循环
                                     if (Equals(inheritInstance.InheritInstanceName,
                                             inheritInstanceName))
@@ -998,6 +1003,10 @@ public class McInstance
                 case McInstanceState.Forge:
                 case McInstanceState.NeoForge:
                 case McInstanceState.Fabric:
+                case McInstanceState.Quilt:
+                case McInstanceState.LegacyFabric:
+                case McInstanceState.Cleanroom:
+                case McInstanceState.LabyMod:
                 case McInstanceState.OptiFine:
                 case McInstanceState.LiteLoader:
                 {

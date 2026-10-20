@@ -1626,6 +1626,7 @@
     <sys:String x:Key="Launch.Home.Download">下载游戏</sys:String>
     <sys:String x:Key="Launch.Home.Folder.Add">添加文件夹</sys:String>
     <sys:String x:Key="Launch.Home.Folder.Count"> · {0} 个实例</sys:String>
+    <sys:String x:Key="Launch.Home.Folder.Loading"> · 正在读取…</sys:String>
     <sys:String x:Key="Launch.Home.Folder.Current"> · 当前</sys:String>
     <sys:String x:Key="Launch.Home.Folder.SetCurrent">设为当前文件夹</sys:String>
     <sys:String x:Key="Launch.Home.Folder.Remove">从列表中移除</sys:String>

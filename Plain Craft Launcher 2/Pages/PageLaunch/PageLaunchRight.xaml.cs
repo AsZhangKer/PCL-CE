@@ -49,6 +49,9 @@ public partial class PageLaunchRight : IRefreshable
                     ModLoader.LoaderFolderRunType.ForceRun, 1, @"versions\");
                 return;
             }
+            // 当前文件夹的实例列表已变化，丢弃旧缓存
+            if (!string.IsNullOrEmpty(ModFolder.mcFolderSelected))
+                _folderInstanceCache.Remove(ModFolder.mcFolderSelected.TrimEnd('\\'));
             UpdateInstanceListUI();
         });
     }
@@ -114,7 +117,9 @@ public partial class PageLaunchRight : IRefreshable
             var total = 0;
             foreach (var folder in ModFolder.mcFolderList.ToList())
             {
+                var folderKey = folder.Location.TrimEnd('\\');
                 var instances = _GetInstances(folder);
+                var loadingCount = !IsCurrentFolder(folder) && !_folderInstanceCache.ContainsKey(folderKey);
                 if (keyword.Length > 0)
                     instances = instances
                         .Where(i => (i.Name ?? "").Contains(keyword, StringComparison.OrdinalIgnoreCase))
@@ -122,7 +127,7 @@ public partial class PageLaunchRight : IRefreshable
                 // 搜索时隐藏没有命中项的文件夹，减少干扰
                 if (keyword.Length > 0 && instances.Count == 0) continue;
 
-                StackInstanceList.Children.Add(_CreateFolderHeader(folder, instances.Count));
+                StackInstanceList.Children.Add(_CreateFolderHeader(folder, instances.Count, loadingCount));
                 foreach (var instance in instances)
                 {
                     StackInstanceList.Children.Add(_CreateInstanceItem(instance));
@@ -145,47 +150,114 @@ public partial class PageLaunchRight : IRefreshable
     }
 
     /// <summary>
-    ///     取某个 Minecraft 文件夹下的实例。当前文件夹复用已加载的列表，其余文件夹现场扫描。
+    ///     各 Minecraft 文件夹的实例扫描结果缓存。
+    ///     非当前文件夹需要读 JSON 才能拿到版本号，代价很高（几十个实例要 1~3 秒），
+    ///     因此只在后台线程扫一次并缓存，避免每次重建列表都卡住 UI。
+    /// </summary>
+    private readonly Dictionary<string, List<McInstance>> _folderInstanceCache = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>正在后台扫描中的文件夹路径，防止重复排队。</summary>
+    private readonly HashSet<string> _folderScanning = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    ///     取某个 Minecraft 文件夹下的实例。当前文件夹复用已加载的列表，其余文件夹走缓存 + 后台扫描。
     /// </summary>
     private List<McInstance> _GetInstances(ModFolder.McFolder folder)
     {
-        var result = new List<McInstance>();
+        var key = folder.Location.TrimEnd('\\');
         try
         {
             if (IsCurrentFolder(folder) && ModInstanceList.mcInstanceList.Count > 0)
             {
+                var current = new List<McInstance>();
                 foreach (var pair in ModInstanceList.mcInstanceList)
-                    result.AddRange(pair.Value);
-                return result;
+                    current.AddRange(pair.Value);
+                _folderInstanceCache[key] = current;
+                return current;
             }
 
-            var versions = Path.Combine(folder.Location, "versions");
-            if (!Directory.Exists(versions)) return result;
-            foreach (var dir in new DirectoryInfo(versions).GetDirectories())
-            {
-                // 与 PCL 的实例判定保持一致：目录中需存在同名 JSON
-                if (!File.Exists(Path.Combine(dir.FullName, dir.Name + ".json"))) continue;
-                var instance = new McInstance(dir.FullName + "\\");
-                try
-                {
-                    instance.Load();
-                }
-                catch (Exception ex)
-                {
-                    ModBase.Log(ex, $"读取实例信息失败：{dir.Name}", ModBase.LogLevel.Developer);
-                }
+            if (_folderInstanceCache.TryGetValue(key, out var cached))
+                return cached;
 
-                result.Add(instance);
-            }
-
-            result.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
+            // 还没有缓存：先在后台扫描，本次先返回空表，扫完会自动重建列表
+            _StartFolderScan(folder, key);
         }
         catch (Exception ex)
         {
-            ModBase.Log(ex, $"扫描实例失败：{folder.Location}");
+            ModBase.Log(ex, $"读取实例列表失败：{folder.Location}");
         }
 
+        return new List<McInstance>();
+    }
+
+    /// <summary>在后台线程扫描指定文件夹的实例，完成后回到 UI 线程重建列表。</summary>
+    private void _StartFolderScan(ModFolder.McFolder folder, string key)
+    {
+        // _folderScanning 只在 UI 线程读写，避免加锁
+        if (!_folderScanning.Add(key)) return;
+        var location = folder.Location;
+        var name = folder.Name;
+        Task.Run(() =>
+        {
+            List<McInstance> result;
+            try
+            {
+                result = _ScanFolderInstances(location);
+            }
+            catch (Exception ex)
+            {
+                ModBase.Log(ex, $"扫描实例失败：{location}");
+                result = new List<McInstance>();
+            }
+
+            ModBase.RunInUi(() =>
+            {
+                _folderScanning.Remove(key);
+                _folderInstanceCache[key] = result;
+                ModBase.Log($"[Launch] 已读取文件夹「{name}」的 {result.Count} 个实例");
+                // 页面已关闭时不要重建
+                if (IsLoaded) BuildInstanceListItems();
+            });
+        });
+    }
+
+    /// <summary>真正的磁盘扫描（可在后台线程调用）。</summary>
+    private static List<McInstance> _ScanFolderInstances(string location)
+    {
+        var result = new List<McInstance>();
+        var versions = Path.Combine(location, "versions");
+        if (!Directory.Exists(versions)) return result;
+
+        foreach (var dir in new DirectoryInfo(versions).GetDirectories())
+        {
+            try
+            {
+                // 空文件夹不可能是实例
+                if (!dir.EnumerateFiles().Any()) continue;
+
+                // 与 PCL 的实例判定保持一致：同名 JSON 存在，或（HMCL 等格式）文件夹内只有一个 JSON
+                var hasSameNameJson = File.Exists(Path.Combine(dir.FullName, dir.Name + ".json"));
+                if (!hasSameNameJson && dir.GetFiles("*.json").Length != 1) continue;
+
+                var instance = new McInstance(dir.FullName + "\\");
+                instance.Load();
+                result.Add(instance);
+            }
+            catch (Exception ex)
+            {
+                ModBase.Log(ex, $"读取实例信息失败：{dir.Name}", ModBase.LogLevel.Developer);
+            }
+        }
+
+        result.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
         return result;
+    }
+
+    /// <summary>清空文件夹实例缓存（文件夹增删、实例增删后调用）。</summary>
+    private void _InvalidateFolderCache()
+    {
+        _folderInstanceCache.Clear();
+        _folderScanning.Clear();
     }
 
     private static bool IsCurrentFolder(ModFolder.McFolder folder) =>
@@ -196,7 +268,7 @@ public partial class PageLaunchRight : IRefreshable
     /// <summary>
     ///     文件夹分组标题行：名称、数量、当前标记，以及右侧的文件夹操作按钮。
     /// </summary>
-    private FrameworkElement _CreateFolderHeader(ModFolder.McFolder folder, int count)
+    private FrameworkElement _CreateFolderHeader(ModFolder.McFolder folder, int count, bool loading = false)
     {
         var grid = new Grid { Margin = new Thickness(1, 8, 1, 4) };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -212,7 +284,9 @@ public partial class PageLaunchRight : IRefreshable
         });
         panel.Children.Add(new TextBlock
         {
-            Text = Lang.Text("Launch.Home.Folder.Count", Lang.Number(count, "N0")),
+            Text = loading
+                ? Lang.Text("Launch.Home.Folder.Loading")
+                : Lang.Text("Launch.Home.Folder.Count", Lang.Number(count, "N0")),
             FontSize = 12,
             Opacity = 0.4,
             Margin = new Thickness(6, 0, 0, 0),
@@ -444,6 +518,8 @@ public partial class PageLaunchRight : IRefreshable
             [new NullOrWhiteSpaceValidator(), new StringLengthValidator(), new BlacklistValidator([">", "|"])]);
         if (string.IsNullOrWhiteSpace(name)) return;
         PageSelectLeft.AddFolder(path, name, true);
+        // 新文件夹加入后重新扫描
+        _InvalidateFolderCache();
     }
 
     /// <summary>
@@ -457,6 +533,7 @@ public partial class PageLaunchRight : IRefreshable
         ModFolder.mcFolderListLoader.Start(isForceRestart: true);
         ModLoader.LoaderFolderRun(ModInstanceList.mcInstanceListLoader, folder.Location,
             ModLoader.LoaderFolderRunType.ForceRun, 1, @"versions\");
+        _InvalidateFolderCache();
         BuildInstanceListItems();
     }
 
@@ -480,6 +557,7 @@ public partial class PageLaunchRight : IRefreshable
 
         HintService.Hint(Lang.Text("Launch.Home.Folder.Removed", folder.Name), HintType.Success);
         ModFolder.mcFolderListLoader.Start(isForceRestart: true);
+        _InvalidateFolderCache();
         BuildInstanceListItems();
     }
 
@@ -578,6 +656,7 @@ public partial class PageLaunchRight : IRefreshable
         PanMultiSelect.Visibility = Visibility.Collapsed;
         ModLoader.LoaderFolderRun(ModInstanceList.mcInstanceListLoader, ModFolder.mcFolderSelected,
             ModLoader.LoaderFolderRunType.ForceRun, 1, @"versions\");
+        _InvalidateFolderCache();
         BuildInstanceListItems();
         ModMain.frmLaunchLeft.RefreshButtonsUI();
     }
