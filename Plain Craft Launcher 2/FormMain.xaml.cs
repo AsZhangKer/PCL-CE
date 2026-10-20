@@ -557,6 +557,17 @@ public partial class FormMain
     /// </summary>
     public bool isSizeSaveable;
 
+    /// <summary>
+    ///     启动页左右两栏的宽度比例：左 : 右 = 2 : 3.5，即左栏占 2/5.5。
+    /// </summary>
+    private const double LaunchLeftWidthRatio = 2d / 5.5d;
+
+    /// <summary>
+    ///     按总宽度计算启动页左栏宽度（限制最小 320，避免窄窗口下内容挤爆）。
+    /// </summary>
+    private static double GetLaunchLeftWidth(double totalWidth) =>
+        Math.Max(320d, totalWidth * LaunchLeftWidthRatio);
+
     private void FormMain_SizeChanged(object? sender = null, EventArgs? e = null)
     {
         if (isSizeSaveable)
@@ -584,9 +595,9 @@ public partial class FormMain
             VideoBack.Width = formWidth;
             VideoBack.Height = formHeight;
 
-            // 启动页：左侧游戏控制区与右侧实例区各占一半
+            // 启动页：左侧游戏控制区与右侧实例区按 2 : 3.5 分配宽度
             if (pageCurrent.page == PageType.Launch && ModMain.frmLaunchLeft is not null)
-                ModMain.frmLaunchLeft.Width = Math.Max(320d, PanMain.ActualWidth / 2d);
+                ModMain.frmLaunchLeft.Width = GetLaunchLeftWidth(PanMain.ActualWidth);
         }
 
         if (WindowState == WindowState.Maximized)
@@ -1849,8 +1860,8 @@ public partial class FormMain
             {
                 case PageType.Launch: // 启动
                     {
-                        // 进入启动页时按窗口宽度重新计算左栏宽度（左右各占一半）
-                        ModMain.frmLaunchLeft.Width = Math.Max(320d, PanMain.ActualWidth / 2d);
+                        // 进入启动页时按窗口宽度重新计算左栏宽度（左右比例 2 : 3.5）
+                        ModMain.frmLaunchLeft.Width = GetLaunchLeftWidth(PanMain.ActualWidth);
                         PageChangeAnim(ModMain.frmLaunchLeft, ModMain.frmLaunchRight);
                         break;
                     }
