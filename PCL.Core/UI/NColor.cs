@@ -142,7 +142,13 @@ public struct NColor :
     {
     }
 
-    public NColor(Brush brush) : this((SolidColorBrush)brush)
+    public NColor(Brush brush) : this(brush switch
+    {
+        // 主题启用渐变时传入的是渐变画刷，取第一个色标作为代表色
+        SolidColorBrush solid => solid.Color,
+        GradientBrush { GradientStops.Count: > 0 } gradient => gradient.GradientStops[0].Color,
+        _ => Colors.Transparent
+    })
     {
     }
 

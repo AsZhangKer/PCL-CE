@@ -626,10 +626,11 @@ public partial class PageLaunchRight : IRefreshable
     {
         if (instances.Count == 0) return;
         var names = string.Join("\n", instances.Select(i => i.Name));
+        // 注意参数顺序：button1=确定、button2=取消，多传一个 button3 会出现两个「取消」按钮
         if (ModMain.MyMsgBox(Lang.Text("Launch.Home.Instance.Delete.Warning", names),
                 Lang.Text("Launch.Home.Instance.Delete.Title"),
-                Lang.Text("Common.Action.Cancel"), Lang.Text("Common.Action.Confirm"),
-                Lang.Text("Common.Action.Cancel")) != 2)
+                Lang.Text("Common.Action.Confirm"), Lang.Text("Common.Action.Cancel"),
+                isWarn: true) != 1)
             return;
 
         var deleted = 0;

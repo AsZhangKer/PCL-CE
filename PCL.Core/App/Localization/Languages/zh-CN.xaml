@@ -1619,7 +1619,7 @@
     <sys:String x:Key="Launch.Home.Instance.InstallingCannotSetup">当前实例正在安装，暂无法进行实例设置！</sys:String>
     <sys:String x:Key="Launch.Home.Instance.Loading">正在加载中，请稍候</sys:String>
     <sys:String x:Key="Launch.Home.Instance.NotFound">未找到可用的游戏实例</sys:String>
-    <sys:String x:Key="Launch.Home.InstanceSettings">实例设置</sys:String>
+    <sys:String x:Key="Launch.Home.InstanceSettings">选项</sys:String>
     <sys:String x:Key="Launch.Home.SelectInstance">实例选择</sys:String>
     <sys:String x:Key="Launch.Home.Instances">游戏实例</sys:String>
     <sys:String x:Key="Launch.Home.Search.Hint">搜索实例</sys:String>
@@ -1632,10 +1632,10 @@
     <sys:String x:Key="Launch.Home.Folder.Remove">从列表中移除</sys:String>
     <sys:String x:Key="Launch.Home.Folder.Removed">已从列表移除文件夹：{0}</sys:String>
     <sys:String x:Key="Launch.Home.Instance.Empty">没有找到可用的实例，换个关键词或添加一个 Minecraft 文件夹试试。</sys:String>
-    <sys:String x:Key="Launch.Home.Instance.Settings">实例设置</sys:String>
+    <sys:String x:Key="Launch.Home.Instance.Settings">选项</sys:String>
     <sys:String x:Key="Launch.Home.Instance.Delete">删除实例</sys:String>
     <sys:String x:Key="Launch.Home.Instance.Delete.Title">删除实例</sys:String>
-    <sys:String x:Key="Launch.Home.Instance.Delete.Warning">将永久删除以下实例的文件，此操作无法撤销：\n\n{0}</sys:String>
+    <sys:String x:Key="Launch.Home.Instance.Delete.Warning">将永久删除以下实例的文件，此操作无法撤销：&#xA;&#xA;{0}</sys:String>
     <sys:String x:Key="Launch.Home.Instance.Delete.Success">已删除 {0} 个实例</sys:String>
     <sys:String x:Key="Launch.Home.MultiSelect.Entered">已进入多选模式</sys:String>
     <sys:String x:Key="Launch.Home.MultiSelect.Count">已选择 {0} 个实例</sys:String>
@@ -1883,7 +1883,7 @@
     <sys:String x:Key="Main.Telemetry.Title">启用遥测数据收集</sys:String>
     <sys:String x:Key="Main.Title.GameLog">实时日志</sys:String>
     <sys:String x:Key="Main.Title.InstanceSelect">实例选择</sys:String>
-    <sys:String x:Key="Main.Title.InstanceSetup">实例设置 - {0}</sys:String>
+    <sys:String x:Key="Main.Title.InstanceSetup">选项 - {0}</sys:String>
     <sys:String x:Key="Main.Title.ResourceDownload">资源下载 - {0}</sys:String>
     <sys:String x:Key="Main.Title.SaveManagement">存档管理 - {0}</sys:String>
     <sys:String x:Key="Main.Title.TaskManager">任务管理</sys:String>
@@ -3209,6 +3209,9 @@
     <sys:String x:Key="Setup.Ui.Theme.Light">浅色</sys:String>
     <sys:String x:Key="Setup.Ui.Theme.LightColor">浅色配色</sys:String>
     <sys:String x:Key="Setup.Ui.Theme.Title">主题</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.CardTitle">配色</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Mode">深浅模式</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.LightColor.ToolTip">在浅色模式下默认的主题配色</sys:String>
 
     <!-- Setup.Update -->
 

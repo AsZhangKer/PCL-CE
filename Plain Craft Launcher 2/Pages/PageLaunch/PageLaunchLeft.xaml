@@ -10,8 +10,6 @@
         <Grid.RowDefinitions>
             <RowDefinition />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="20" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
@@ -24,31 +22,39 @@
         <Grid.RenderTransform>
             <ScaleTransform />
         </Grid.RenderTransform>
-        <!-- 实例设置：位于启动按钮下方，仅在存在有效实例时显示。尺寸与启动按钮保持一致 -->
-        <local:MyButton Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="5" x:Name="BtnMore" Visibility="Collapsed"
-                        Height="52" Margin="20,8,20,20" Click="BtnMore_Click"
-                        ColorType="Highlight"
-                        Text="{DynamicResource Launch.Home.InstanceSettings}" />
         <Grid Grid.ColumnSpan="5" Grid.Row="0" Margin="20,0" VerticalAlignment="Center" x:Name="PanLogin" />
-        <!-- 启动按钮位于左栏下方，登录档案卡片占据上方空间 -->
-        <Grid Grid.ColumnSpan="5" Grid.Row="1" RenderTransformOrigin="0.5,0.5" Margin="0,0,0,10">
+        <!-- 启动按钮与「选项」按钮组成一个胶囊按钮组：左侧启动占据剩余宽度，右侧「选项」固定宽度，
+             两者共用外轮廓，中间以 1px 的边框重叠作为分割线 -->
+        <Grid Grid.ColumnSpan="5" Grid.Row="1" RenderTransformOrigin="0.5,0.5" Margin="0,0,0,20">
             <Grid.RenderTransform>
                 <TransformGroup>
                     <ScaleTransform x:Name="AprilScaleTrans" />
                     <TranslateTransform x:Name="AprilPosTrans" />
                 </TransformGroup>
             </Grid.RenderTransform>
-            <local:MyButton x:Name="BtnLaunch" Height="52" Margin="20,0" Text="{DynamicResource Launch.Home.Button.Loading}" ColorType="Highlight"
-                            Click="BtnLaunch_Click"
-                            Padding="30,0,30,15" IsEnabled="False" />
-            <TextBlock x:Name="LabVersion" Text="{DynamicResource Launch.Home.VersionList.Loading}" Margin="35,0,35,9" IsHitTestVisible="False"
-                       VerticalAlignment="Bottom" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"
-                       FontSize="10.5" Foreground="{DynamicResource ColorBrushGray3}" RenderTransformOrigin="0.5,-0.2">
-                <TextBlock.RenderTransform>
-                    <ScaleTransform ScaleX="{Binding RealRenderTransform.ScaleX, ElementName=BtnLaunch, Mode=OneWay}"
-                                    ScaleY="{Binding RealRenderTransform.ScaleY, ElementName=BtnLaunch, Mode=OneWay}" />
-                </TextBlock.RenderTransform>
-            </TextBlock>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Grid Grid.Column="0">
+                <local:MyButton x:Name="BtnLaunch" Height="52" Margin="20,0,0,0" CornerRadius="26" TextSize="15"
+                                Text="{DynamicResource Launch.Home.Button.Loading}" ColorType="Highlight"
+                                Click="BtnLaunch_Click"
+                                Padding="26,0,26,15" IsEnabled="False" />
+                <TextBlock x:Name="LabVersion" Text="{DynamicResource Launch.Home.VersionList.Loading}" Margin="35,0,35,9" IsHitTestVisible="False"
+                           VerticalAlignment="Bottom" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"
+                           FontSize="10.5" Foreground="{DynamicResource ColorBrushGray3}" RenderTransformOrigin="0.5,-0.2">
+                    <TextBlock.RenderTransform>
+                        <ScaleTransform ScaleX="{Binding RealRenderTransform.ScaleX, ElementName=BtnLaunch, Mode=OneWay}"
+                                        ScaleY="{Binding RealRenderTransform.ScaleY, ElementName=BtnLaunch, Mode=OneWay}" />
+                    </TextBlock.RenderTransform>
+                </TextBlock>
+            </Grid>
+            <!-- 负边距让它的左边框正好压在启动按钮的右边框上，形成 1px 分割线 -->
+            <local:MyButton Grid.Column="1" x:Name="BtnMore" Width="104" Height="52" Margin="-1,0,20,0"
+                            Visibility="Collapsed" Click="BtnMore_Click" ColorType="Highlight" TextSize="14"
+                            CornerRadius="0,26,26,0"
+                            Text="{DynamicResource Launch.Home.InstanceSettings}" />
         </Grid>
     </Grid>
     <Grid Name="PanLaunching" RenderTransformOrigin="0.5,0.5" Visibility="Collapsed" Opacity="0">

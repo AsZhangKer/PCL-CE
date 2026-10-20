@@ -34,6 +34,13 @@ public partial class MyButton
         {
             if (sender is not null) ((MyButton)sender).PanFore.Padding = (Thickness)e.NewValue;
         }));
+
+    // 文字字号：胶囊形主按钮需要比默认 13px 更大的字号
+    public static readonly DependencyProperty TextSizeProperty = DependencyProperty.Register("TextSize",
+        typeof(double), typeof(MyButton), new PropertyMetadata(13d, (sender, e) =>
+        {
+            if (sender is not null) ((MyButton)sender).LabText.FontSize = (double)e.NewValue;
+        }));
     
     private ColorState _ColorType = ColorState.Normal; // 配色方案
 
@@ -86,6 +93,12 @@ public partial class MyButton
     {
         get => PanFore.Padding;
         set => PanFore.Padding = value;
+    }
+
+    public double TextSize
+    {
+        get => (double)GetValue(TextSizeProperty);
+        set => SetValue(TextSizeProperty, value);
     }
 
     public Transform RealRenderTransform

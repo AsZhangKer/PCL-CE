@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -379,7 +379,8 @@ public class MyTextBox : TextBox
     private void RefreshTextColor()
     {
         var newColor = IsEnabled ? ThemeManager.colorGray1 : ThemeManager.colorGray4;
-        if (((SolidColorBrush)Foreground).Color.R == newColor.r)
+        // 主题启用渐变时 Foreground 可能是渐变画刷，此时无法比较 R 分量，直接跳过提前返回
+        if (Foreground is SolidColorBrush currentBrush && currentBrush.Color.R == newColor.r)
             return;
         if (IsLoaded && ModAnimation.AniControlEnabled == 0 && !string.IsNullOrEmpty(Text))
         {

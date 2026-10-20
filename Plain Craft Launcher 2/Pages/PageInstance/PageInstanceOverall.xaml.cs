@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -68,9 +68,11 @@ public partial class PageInstanceOverall
     /// </summary>
     private void Reload()
     {
+        var instance = PageInstanceLeft.McInstance;
+        // 没有选中实例时直接跳过刷新：否则会在读取 instance.PathInstance 时抛出空引用
+        if (instance is null) return;
         ModAnimation.AniControlEnabled += 1;
 
-        var instance = PageInstanceLeft.McInstance;
         // 刷新设置项目
         ComboDisplayType.SelectedIndex = States.Instance.CardType[instance.PathInstance];
         BtnDisplayStar.Text = instance.IsStar ? Lang.Text("Instance.Overall.Unfavorite") : Lang.Text("Instance.Overall.Favorite");

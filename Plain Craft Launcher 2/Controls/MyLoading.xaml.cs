@@ -25,14 +25,16 @@ public partial class MyLoading
 
     #region 颜色
 
-    public SolidColorBrush Foreground
+    // 类型必须是 Brush 而不是 SolidColorBrush：主题启用渐变时 ColorBrush3 是 LinearGradientBrush，
+    // 依赖属性类型过窄会在 SetResourceReference 时直接抛异常
+    public Brush Foreground
     {
-        get => (SolidColorBrush)GetValue(ForegroundProperty);
+        get => (Brush)GetValue(ForegroundProperty);
         set => SetValue(ForegroundProperty, value);
     }
 
     public static readonly DependencyProperty ForegroundProperty =
-        DependencyProperty.Register("Foreground", typeof(SolidColorBrush), typeof(MyLoading));
+        DependencyProperty.Register("Foreground", typeof(Brush), typeof(MyLoading));
 
     public MyLoading()
     {

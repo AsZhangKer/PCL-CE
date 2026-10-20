@@ -577,7 +577,8 @@ public partial class PageSetupUI
     }
 
     /// <summary>
-    /// 刷新主题色块预览：浅色/深色两列分别按对应模式的色调计算所选主题的主色。
+    /// 刷新配色预览：两条色带分别按浅色/深色色调计算，含渐变方向与主色占比，
+    /// 与界面实际使用的画刷算法一致（同样走 ThemeService）。
     /// </summary>
     private void RefreshThemeColorPreview()
     {
@@ -586,6 +587,12 @@ public partial class PageSetupUI
                 ThemeService.GetThemePreviewBrush(Config.Preference.Theme.LightColor, false);
         if (BorderDarkThemeColor is not null)
             BorderDarkThemeColor.Background =
+                ThemeService.GetThemePreviewBrush(Config.Preference.Theme.DarkColor, true);
+        if (BorderPreviewLight is not null)
+            BorderPreviewLight.Background =
+                ThemeService.GetThemePreviewBrush(Config.Preference.Theme.LightColor, false);
+        if (BorderPreviewDark is not null)
+            BorderPreviewDark.Background =
                 ThemeService.GetThemePreviewBrush(Config.Preference.Theme.DarkColor, true);
     }
 

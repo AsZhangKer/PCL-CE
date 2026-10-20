@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -54,10 +54,22 @@ public partial class PageLaunchLeft
         BtnLaunch.Loaded += (_, _) => RefreshButtonsUI();
         BtnCancel.Click += BtnCancel_Click;
         BtnMore.Click += BtnMore_Click;
+        // 「选项」按钮的显隐会改变胶囊按钮组的外形：隐藏时启动按钮恢复完整圆角
+        BtnMore.IsVisibleChanged += (_, _) => RefreshLaunchButtonShape();
         PanLaunchingInfo.SizeChanged += PanLaunchingInfo_SizeChangedW;
         PanLaunchingInfo.SizeChanged += PanLaunchingInfo_SizeChangedH;
     }
     private static void OnLanguageChanged(PageLaunchLeft page) => ModBase.RunInUi(page.RefreshButtonsUI);
+
+    /// <summary>
+    ///     同步胶囊按钮组的外形：只有当「选项」按钮可见时才需要左侧直角，
+    ///     否则启动按钮要恢复完整圆角，避免出现被切掉一边的胶囊。
+    /// </summary>
+    private void RefreshLaunchButtonShape()
+    {
+        var hasMore = BtnMore.Visibility == Visibility.Visible;
+        BtnLaunch.CornerRadius = hasMore ? new CornerRadius(26, 0, 0, 26) : new CornerRadius(26);
+    }
 
     public void PageLaunchLeft_Loaded(object sender, RoutedEventArgs e)
     {
@@ -354,6 +366,8 @@ public partial class PageLaunchLeft
     private void BtnMore_Click(object sender, MouseButtonEventArgs e)
     {
         if (ModLaunch.mcLaunchLoader.State == ModBase.LoadState.Loading)
+            return;
+        if (ModInstanceList.McMcInstanceSelected is null)
             return;
         ModInstanceList.McMcInstanceSelected.Load();
         PageInstanceLeft.McInstance = ModInstanceList.McMcInstanceSelected;
