@@ -24,10 +24,10 @@
         <Grid.RenderTransform>
             <ScaleTransform />
         </Grid.RenderTransform>
-        <!-- 实例设置：位于启动按钮下方，仅在存在有效实例时显示 -->
+        <!-- 实例设置：位于启动按钮下方，仅在存在有效实例时显示。尺寸与启动按钮保持一致 -->
         <local:MyButton Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="5" x:Name="BtnMore" Visibility="Collapsed"
-                        Height="32" Width="180" HorizontalAlignment="Center" Click="BtnMore_Click"
-                        Margin="0,0,0,20" ColorType="Highlight"
+                        Height="52" Margin="20,8,20,20" Click="BtnMore_Click"
+                        ColorType="Highlight"
                         Text="{DynamicResource Launch.Home.InstanceSettings}" />
         <Grid Grid.ColumnSpan="5" Grid.Row="0" Margin="20,0" VerticalAlignment="Center" x:Name="PanLogin" />
         <!-- 启动按钮位于左栏下方，登录档案卡片占据上方空间 -->

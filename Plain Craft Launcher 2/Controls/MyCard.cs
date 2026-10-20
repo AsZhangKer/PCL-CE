@@ -102,9 +102,9 @@ public class MyCard : AnimatedBackgroundGrid
         }
     }
 
-    protected override SolidColorBrush AnimatableBrush
+    protected override Brush AnimatableBrush
     {
-        get => (SolidColorBrush)mainBorder.Background;
+        get => mainBorder.Background;
         set => mainBorder.Background = value;
     }
 

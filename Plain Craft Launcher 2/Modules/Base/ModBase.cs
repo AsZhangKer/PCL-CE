@@ -178,7 +178,13 @@ public static class ModBase
 
         public MyColor(Brush brush)
         {
-            var color = ((SolidColorBrush)brush).Color;
+            // 主题启用渐变时传入的是渐变画刷，此时取其第一个色标作为代表色，避免强转 SolidColorBrush 抛异常
+            var color = brush switch
+            {
+                SolidColorBrush solid => solid.Color,
+                GradientBrush { GradientStops.Count: > 0 } gradient => gradient.GradientStops[0].Color,
+                _ => Colors.Transparent
+            };
             a = color.A;
             r = color.R;
             g = color.G;
@@ -203,10 +209,15 @@ public static class ModBase
                 g = 255d;
                 b = 255d;
             }
-            else if (obj is SolidColorBrush)
+            else if (obj is Brush brush)
             {
-                // 避免反复获取 Color 对象造成性能下降
-                var color = ((SolidColorBrush)obj).Color;
+                // 纯色画刷直接取 Color；渐变画刷取第一个色标，避免走 dynamic 取值时因没有 A/R/G/B 属性而崩溃
+                var color = brush switch
+                {
+                    SolidColorBrush solid => solid.Color,
+                    GradientBrush { GradientStops.Count: > 0 } gradient => gradient.GradientStops[0].Color,
+                    _ => Colors.Transparent
+                };
                 a = color.A;
                 r = color.R;
                 g = color.G;

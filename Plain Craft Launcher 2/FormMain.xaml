@@ -147,7 +147,8 @@
                             </Border>
                         </Grid>
                         <!-- 顶部菜单：启动 / 下载 / 设置。标签固定为较窄宽度，右侧余下整片空白留给拖动窗口 -->
-                        <Grid x:Name="PanTitleSelect" Grid.Column="1" Height="48" Margin="8,0,72,0" Background="#00000000">
+                        <!-- 此处不能设置 Background：透明背景会让空白区域参与命中测试，导致顶栏拖不动窗口 -->
+                        <Grid x:Name="PanTitleSelect" Grid.Column="1" Height="48" Margin="8,0,72,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
