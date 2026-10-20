@@ -65,6 +65,12 @@ public partial class PageLaunchRight : IRefreshable
     /// <summary>多选模式下已选中的实例路径（忽略大小写）。</summary>
     private readonly HashSet<string> _multiSelected = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    ///     折叠状态。存的是“已折叠”的 key，默认全部展开，
+    ///     这样新增的文件夹、新出现的版本分组都会自动展开，不需要额外维护。
+    /// </summary>
+    private readonly HashSet<string> _collapsed = new(StringComparer.OrdinalIgnoreCase);
+
     private bool _multiSelectMode;
 
     /// <summary>进入多选的时刻，用于吞掉长按松手时触发的那一次勾选。</summary>
@@ -101,7 +107,7 @@ public partial class PageLaunchRight : IRefreshable
     }
 
     /// <summary>
-    ///     重建实例列表：按 Minecraft 文件夹分组，每个实例占一行。
+    ///     重建实例列表：按 Minecraft 文件夹分组，文件夹内再按「加载器 + 版本」折叠分组。
     /// </summary>
     private void BuildInstanceListItems()
     {
@@ -114,7 +120,7 @@ public partial class PageLaunchRight : IRefreshable
             _lastFolderCount = ModFolder.mcFolderList.Count;
 
             var keyword = (TextSearchInstance?.Text ?? "").Trim();
-            var total = 0;
+            var matchedTotal = 0; // 命中项总数（不受折叠影响，用于空状态判断）
             foreach (var folder in ModFolder.mcFolderList.ToList())
             {
                 var folderKey = folder.Location.TrimEnd('\\');
@@ -126,16 +132,25 @@ public partial class PageLaunchRight : IRefreshable
                         .ToList();
                 // 搜索时隐藏没有命中项的文件夹，减少干扰
                 if (keyword.Length > 0 && instances.Count == 0) continue;
+                matchedTotal += instances.Count;
 
-                StackInstanceList.Children.Add(_CreateFolderHeader(folder, instances.Count, loadingCount));
-                foreach (var instance in instances)
+                // 搜索时强制展开，否则命中的实例可能被折叠藏起来，看起来像“搜不到”
+                var folderExpanded = keyword.Length > 0 || !_collapsed.Contains(_FolderCollapseKey(folder));
+                StackInstanceList.Children.Add(_CreateFolderHeader(folder, instances.Count, loadingCount, folderExpanded));
+                if (!folderExpanded) continue;
+
+                foreach (var group in _GroupInstances(instances))
                 {
-                    StackInstanceList.Children.Add(_CreateInstanceItem(instance));
-                    total++;
+                    var groupKey = _GroupCollapseKey(folder, group.Key);
+                    var groupExpanded = keyword.Length > 0 || !_collapsed.Contains(groupKey);
+                    StackInstanceList.Children.Add(_CreateGroupHeader(group, folder, groupExpanded));
+                    if (!groupExpanded) continue;
+                    foreach (var instance in group.Instances)
+                        StackInstanceList.Children.Add(_CreateInstanceItem(instance));
                 }
             }
 
-            LabInstanceEmpty.Visibility = total == 0 ? Visibility.Visible : Visibility.Collapsed;
+            LabInstanceEmpty.Visibility = matchedTotal == 0 ? Visibility.Visible : Visibility.Collapsed;
             PanMultiSelect.Visibility = _multiSelectMode ? Visibility.Visible : Visibility.Collapsed;
             RefreshMultiSelectBar();
         }
@@ -148,6 +163,132 @@ public partial class PageLaunchRight : IRefreshable
             _instanceListBuilding = false;
         }
     }
+
+    #region 排序与分组
+
+    /// <summary>
+    ///     一个模组加载器分组，例如「Fabric」「NeoForge」「原版」。
+    ///     折叠的粒度就是加载器类别，不再按版本细分。
+    /// </summary>
+    private sealed class InstanceGroup
+    {
+        public string Key = "";
+        public int Rank;
+
+        /// <summary>模组加载器显示名，原版时为「原版」。</summary>
+        public string LoaderName = "";
+
+        public readonly List<McInstance> Instances = new();
+
+        public string DisplayName => LoaderName;
+    }
+
+    private static string _FolderCollapseKey(ModFolder.McFolder folder) =>
+        "F|" + folder.Location.TrimEnd('\\');
+
+    private static string _GroupCollapseKey(ModFolder.McFolder folder, string groupKey) =>
+        "G|" + folder.Location.TrimEnd('\\') + "|" + groupKey;
+
+    private void ToggleCollapse(string key)
+    {
+        if (!_collapsed.Remove(key)) _collapsed.Add(key);
+        BuildInstanceListItems();
+    }
+
+    /// <summary>
+    ///     判定实例的模组加载器归类。
+    ///     Rank 越小越靠前：Fabric &gt; NeoForge &gt; Forge &gt; Cleanroom &gt; 其他加载器 &gt; 原版。
+    ///     一个实例装了多个加载器时取优先级最高的那个。
+    /// </summary>
+    private static (int Rank, string Name) _GetLoaderGroup(McInstanceInfo info)
+    {
+        if (info.HasFabric) return (0, "Fabric");
+        if (info.HasNeoForge) return (1, "NeoForge");
+        if (info.HasForge) return (2, "Forge");
+        if (info.HasCleanroom) return (3, "Cleanroom");
+        // 其余加载器的先后仅用于保证排序稳定，不属于用户指定的优先级
+        if (info.HasQuilt) return (4, "Quilt");
+        if (info.HasLegacyFabric) return (5, "Legacy Fabric");
+        if (info.HasLiteLoader) return (6, "LiteLoader");
+        if (info.HasLabyMod) return (7, "LabyMod");
+        if (info.HasOptiFine) return (8, "OptiFine");
+        return (9, Lang.Text("Minecraft.Version.Vanilla"));
+    }
+
+    /// <summary>
+    ///     把实例按模组加载器分组（Fabric / NeoForge / Forge / Cleanroom / 其他 / 原版），
+    ///     组内按「版本新的在前」排序。
+    /// </summary>
+    private static List<InstanceGroup> _GroupInstances(List<McInstance> instances)
+    {
+        var map = new Dictionary<int, InstanceGroup>();
+        var sortKeys = new Dictionary<McInstance, (Version Version, bool Valid)>();
+        foreach (var instance in instances)
+        {
+            int rank;
+            string loader;
+            Version version;
+            var versionValid = true;
+            try
+            {
+                var info = instance.Info;
+                (rank, loader) = _GetLoaderGroup(info);
+                if (info.vanilla is null)
+                {
+                    version = new Version(0, 0);
+                    versionValid = false;
+                }
+                else
+                {
+                    version = info.vanilla;
+                    // 9999.0.0 是 PCL 对「无法识别版本」的占位值，属于不可靠版本
+                    versionValid = info.Valid;
+                }
+            }
+            catch (Exception ex)
+            {
+                ModBase.Log(ex, $"读取实例版本信息失败：{instance.Name}", ModBase.LogLevel.Developer);
+                (rank, loader) = (99, Lang.Text("Minecraft.Version.Unknown"));
+                version = new Version(0, 0);
+                versionValid = false;
+            }
+
+            if (!map.TryGetValue(rank, out var group))
+            {
+                group = new InstanceGroup { Key = rank.ToString(), Rank = rank, LoaderName = loader };
+                map[rank] = group;
+            }
+
+            group.Instances.Add(instance);
+            sortKeys[instance] = (version, versionValid);
+        }
+
+        var list = map.Values.ToList();
+        // 组顺序即加载器优先级：Fabric 在最上，原版在最下
+        list.Sort((a, b) => a.Rank.CompareTo(b.Rank));
+
+        foreach (var group in list)
+            group.Instances.Sort((a, b) =>
+            {
+                var (va, vaValid) = sortKeys[a];
+                var (vb, vbValid) = sortKeys[b];
+                // 版本可靠的排前面，未知版本沉底
+                if (vaValid != vbValid) return vaValid ? -1 : 1;
+                if (vaValid)
+                {
+                    // 版本新的在前
+                    var byVersion = vb.CompareTo(va);
+                    if (byVersion != 0) return byVersion;
+                }
+
+                // 同版本按名称排序，保证顺序稳定
+                return string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
+            });
+
+        return list;
+    }
+
+    #endregion
 
     /// <summary>
     ///     各 Minecraft 文件夹的实例扫描结果缓存。
@@ -241,6 +382,8 @@ public partial class PageLaunchRight : IRefreshable
 
                 var instance = new McInstance(dir.FullName + "\\");
                 instance.Load();
+                // 预热版本信息：在后台线程完成 JSON 解析，避免构建列表时卡住 UI
+                _ = instance.Info;
                 result.Add(instance);
             }
             catch (Exception ex)
@@ -266,18 +409,52 @@ public partial class PageLaunchRight : IRefreshable
             StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
-    ///     文件夹分组标题行：名称、数量、当前标记，以及右侧的文件夹操作按钮。
+    ///     折叠箭头。图标包里只有 chevron-right，因此靠旋转得到朝下/朝右两种状态。
+    ///     不参与命中测试，点击由父级标题行统一处理。
     /// </summary>
-    private FrameworkElement _CreateFolderHeader(ModFolder.McFolder folder, int count, bool loading = false)
+    private static MyIconButton _CreateChevron(bool expanded, double size = 20)
+    {
+        var chevron = new MyIconButton
+        {
+            SvgIcon = "lucide/chevron-right",
+            Height = size,
+            Width = size,
+            Background = Brushes.Transparent,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(-1, 0, 3, 0),
+            IsHitTestVisible = false,
+            Opacity = 0.7
+        };
+        // 展开时转 90°（朝下），折叠时保持朝右
+        chevron.RenderTransformOrigin = new Point(0.5, 0.5);
+        chevron.RenderTransform = new RotateTransform(expanded ? 90d : 0d);
+        return chevron;
+    }
+
+    /// <summary>
+    ///     文件夹分组标题行：折叠箭头、名称、数量、当前标记，以及右侧的文件夹操作按钮。
+    ///     点击标题文字或箭头可折叠整个文件夹。
+    /// </summary>
+    private FrameworkElement _CreateFolderHeader(ModFolder.McFolder folder, int count, bool loading = false,
+        bool expanded = true)
     {
         var grid = new Grid { Margin = new Thickness(1, 8, 1, 4) };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
+        // 左半区整块可点击：折叠 / 展开
+        var clickArea = new Grid { Background = Brushes.Transparent, Cursor = Cursors.Hand };
+        clickArea.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        clickArea.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        var chevron = _CreateChevron(expanded);
+        clickArea.Children.Add(chevron);
+
         var panel = new StackPanel
         {
             Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center
         };
+        Grid.SetColumn(panel, 1);
         panel.Children.Add(new TextBlock
         {
             Text = folder.Name, FontSize = 12.5, Opacity = 0.65, VerticalAlignment = VerticalAlignment.Center
@@ -301,7 +478,10 @@ public partial class PageLaunchRight : IRefreshable
                 Margin = new Thickness(6, 0, 0, 0),
                 VerticalAlignment = VerticalAlignment.Center
             });
-        grid.Children.Add(panel);
+        clickArea.Children.Add(panel);
+        var collapseKey = _FolderCollapseKey(folder);
+        clickArea.MouseLeftButtonUp += (_, _) => ToggleCollapse(collapseKey);
+        grid.Children.Add(clickArea);
 
         var btn = new MyIconButton
         {
@@ -316,6 +496,44 @@ public partial class PageLaunchRight : IRefreshable
         Grid.SetColumn(btn, 1);
         btn.Click += (_, _) => OpenFolderMenu(folder, btn);
         grid.Children.Add(btn);
+        return grid;
+    }
+
+    /// <summary>
+    ///     加载器分组标题行（文件夹内第二级）：折叠箭头、加载器名、实例数量。
+    ///     视觉上比文件夹标题更淡更小，以体现层级。
+    /// </summary>
+    private FrameworkElement _CreateGroupHeader(InstanceGroup group, ModFolder.McFolder folder, bool expanded)
+    {
+        var grid = new Grid
+        {
+            Margin = new Thickness(12, 3, 1, 2),
+            Background = Brushes.Transparent,
+            Cursor = Cursors.Hand
+        };
+
+        var panel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        panel.Children.Add(_CreateChevron(expanded, 17));
+        panel.Children.Add(new TextBlock
+        {
+            Text = group.DisplayName,
+            FontSize = 12,
+            Opacity = 0.55,
+            VerticalAlignment = VerticalAlignment.Center,
+            TextTrimming = TextTrimming.CharacterEllipsis
+        });
+        panel.Children.Add(new TextBlock
+        {
+            Text = Lang.Number(group.Instances.Count, "N0"),
+            FontSize = 11,
+            Opacity = 0.32,
+            Margin = new Thickness(6, 0, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        grid.Children.Add(panel);
+
+        var collapseKey = _GroupCollapseKey(folder, group.Key);
+        grid.MouseLeftButtonUp += (_, _) => ToggleCollapse(collapseKey);
         return grid;
     }
 
@@ -349,7 +567,8 @@ public partial class PageLaunchRight : IRefreshable
         {
             Title = instance.Name,
             Height = 42,
-            Margin = new Thickness(0, 0, 0, 2),
+            // 左侧缩进，体现它位于「加载器 + 版本」分组之下
+            Margin = new Thickness(12, 0, 0, 2),
             Tag = instance,
             Type = _multiSelectMode ? MyListItem.CheckType.CheckBox : MyListItem.CheckType.Clickable,
             Checked = _multiSelectMode && _multiSelected.Contains(instance.PathInstance)
