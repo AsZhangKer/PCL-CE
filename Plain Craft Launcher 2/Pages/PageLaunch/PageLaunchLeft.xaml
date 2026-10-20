@@ -10,7 +10,8 @@
         <Grid.RowDefinitions>
             <RowDefinition />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="20" />
+            <!-- 占位行归零：底部留白全部交给下边距控制，便于与右侧卡片底边对齐 -->
+            <RowDefinition Height="0" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
@@ -25,8 +26,8 @@
         <Grid Grid.ColumnSpan="5" Grid.Row="0" Margin="20,0" VerticalAlignment="Center" x:Name="PanLogin" />
         <!-- 启动按钮与「选项」按钮组成一个胶囊按钮组：左侧启动占据剩余宽度，右侧「选项」固定宽度，
              两者共用外轮廓，中间以 1px 的边框重叠作为分割线 -->
-        <!-- 底部整块比原来上提一个按钮高度（52px），底部留白由行定义与下边距共同决定 -->
-        <Grid Grid.ColumnSpan="5" Grid.Row="1" RenderTransformOrigin="0.5,0.5" Margin="0,0,0,72">
+        <!-- 底部留白 25px：与右侧实例卡片的 25px 外边距一致，使两者底边严格对齐 -->
+        <Grid Grid.ColumnSpan="5" Grid.Row="1" RenderTransformOrigin="0.5,0.5" Margin="0,0,0,25">
             <Grid.RenderTransform>
                 <TransformGroup>
                     <ScaleTransform x:Name="AprilScaleTrans" />

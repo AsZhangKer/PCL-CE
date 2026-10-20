@@ -1,5 +1,4 @@
 using System.Windows;
-using System.Windows.Input;
 using PCL.Core.App.Localization;
 
 namespace PCL;
@@ -11,8 +10,7 @@ public partial class PageLoginProfileSkin
         InitializeComponent();
         Loaded += (_, _) => Reload();
         // Handles
-        PanData.MouseEnter += ShowPanel;
-        PanData.MouseLeave += HidePanel;
+        // 操作按钮组改为常显，不再挂载鼠标进入/离开的淡入淡出
         BtnSkin.Click += BtnSkin_Click;
         BtnEdit.Click += BtnEdit_Click;
         BtnSelect.Click += ChangeProfile;
@@ -51,25 +49,7 @@ public partial class PageLoginProfileSkin
 
     #region 控制与编辑
 
-    // 显示 / 隐藏控制
-    private void ShowPanel(object sender, MouseEventArgs e)
-    {
-        ModAnimation.AniStart(ModAnimation.AaOpacity(PanButtons, 1d - PanButtons.Opacity, 120),
-            "PageLoginProfileSkin Button");
-    }
-
-    private void HidePanel(object sender, EventArgs e)
-    {
-        if (BtnEdit.ContextMenu.IsOpen || BtnSkin.ContextMenu.IsOpen || PanData.IsMouseOver)
-            return;
-        ModAnimation.AniStart(ModAnimation.AaOpacity(PanButtons, -PanButtons.Opacity, 120),
-            "PageLoginProfileSkin Button");
-    }
-
-    private void MenuAccountOptions_Closed(object sender, RoutedEventArgs e)
-    {
-        HidePanel(sender, e);
-    }
+    // 显示 / 隐藏控制：按钮组常显，无需再根据鼠标位置淡入淡出
 
     // 皮肤与披风子菜单
     private void BtnSkin_Click(object sender, EventArgs e)
