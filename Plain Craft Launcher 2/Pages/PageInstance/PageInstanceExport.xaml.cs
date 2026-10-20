@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.IO.Compression;
 using System.Windows;
 using System.Windows.Controls;
@@ -867,21 +867,9 @@ public partial class PageInstanceExport : IRefreshable
         var loaders = new List<ModLoader.LoaderBase>();
 
         #region 准备 PCL 文件
-        
-        #if !RELEASE
-        if (includePCL)
-            loaders.Add(new ModLoader.LoaderTask<int, int>(Lang.Text("Instance.Export.Task.DownloadPclRelease"),
-                loader =>
-                {
-                    UpdateManager.DownloadLatestPCL(loader);
-                    ModBase.CopyFile(Path.Combine(ModBase.pathTemp, "CE-Latest.exe"),
-                        Path.Combine(cacheFolder, "Plain Craft Launcher.exe"));
-                })
-            {
-                ProgressWeight = 0.5d,
-                block = false
-            });
-        #endif
+
+        // 自动更新模块已移除：导出整合包时不再下载最新启动器，
+        // 直接复用 976 行处复制当前可执行文件的逻辑。
 
         #endregion
 

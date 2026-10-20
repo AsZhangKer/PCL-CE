@@ -9,7 +9,19 @@ public static class Secrets
     /// <summary>
     /// 微软 OAuth 的 Client ID
     /// </summary>
-    public static string MSOAuthClientId { get; } = EnvironmentInterop.GetSecret("MS_CLIENT_ID", readEnvDebugOnly: true).ReplaceNullOrEmpty();
+    public static string MSOAuthClientId
+    {
+        get
+        {
+            // 用户通过设置自定义的 Client ID 优先（用于已获 Minecraft API 权限的客户端）
+            var overridden = Config.Preference.Theme.MsClientId?.Trim();
+            if (!string.IsNullOrEmpty(overridden))
+                return overridden;
+            // Client ID 属于 OAuth 公共客户端标识（非机密），因此允许 Release 构建也从运行时环境变量读取，
+            // 便于未打包时通过 .env.local / 系统环境变量注入，而不必重新编译。
+            return EnvironmentInterop.GetSecret("MS_CLIENT_ID", readEnvDebugOnly: false).ReplaceNullOrEmpty();
+        }
+    }
 
     /// <summary>
     /// CurseForge API 的 Client ID
@@ -20,21 +32,6 @@ public static class Secrets
     /// 遥测密钥
     /// </summary>
     public static string TelemetryKey { get; } = EnvironmentInterop.GetSecret("TELEMETRY_KEY", readEnvDebugOnly: true).ReplaceNullOrEmpty();
-
-    /// <summary>
-    /// Natayark ID OAuth 的 Client ID
-    /// </summary>
-    public static string NatayarkClientId { get; } = EnvironmentInterop.GetSecret("NAID_CLIENT_ID", readEnvDebugOnly: true).ReplaceNullOrEmpty();
-
-    /// <summary>
-    /// Natayark ID OAuth 的 Client ID
-    /// </summary>
-    public static string NatayarkClientSecret { get; } = EnvironmentInterop.GetSecret("NAID_CLIENT_SECRET", readEnvDebugOnly: true).ReplaceNullOrEmpty();
-
-    /// <summary>
-    /// 联机根服务器
-    /// </summary>
-    public static string[] LinkServers { get; } = EnvironmentInterop.GetSecret("LINK_SERVER_ROOT", readEnvDebugOnly: true).ReplaceNullOrEmpty().Split("|");
 
     /// <summary>
     /// 当前版本的 Git 提交 SHA

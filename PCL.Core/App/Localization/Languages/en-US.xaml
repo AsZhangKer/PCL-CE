@@ -3150,10 +3150,30 @@
 
     <!-- Setup.Ui.Theme -->
 
+    <sys:String x:Key="Setup.Ui.Theme.Color.Custom">Custom</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Browns">Obsidian Brown</sys:String>
     <sys:String x:Key="Setup.Ui.Theme.Color.CatBlue">LTCat Blue</sys:String>
     <sys:String x:Key="Setup.Ui.Theme.Color.CrashBlue">Crash Blue</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Green">Verdant Green</sys:String>
     <sys:String x:Key="Setup.Ui.Theme.Color.Hmcl">HMCL</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Orange">Warm Orange</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Pink">Sakura Pink</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Red">Maple Red</sys:String>
     <sys:String x:Key="Setup.Ui.Theme.Color.SkyBlue">Sky Blue</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Violet">Twilight Violet</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Cyan">Cyan</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Mint">Mint Green</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Indigo">Indigo</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Amber">Amber Gold</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Sakura">Late Sakura</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Steel">Graphite</sys:String>
+    <sys:String x:Key="Setup.Ui.MsClientId">Microsoft Client ID</sys:String>
+    <sys:String x:Key="Setup.Ui.MsClientId.Hint">Leave empty to use built-in value; fill an approved Client ID if login gets 403</sys:String>
+    <sys:String x:Key="Setup.Ui.MsClientId.Placeholder">Only fill an App ID approved for Minecraft API</sys:String>
+    <sys:String x:Key="Setup.Ui.MsClientId.ToolTip">OAuth Client ID for Microsoft sign-in. Must be approved for the Minecraft API, otherwise login is rejected (403)</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.CustomColor">Custom color</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.CustomColor.Hint">Enter hex color, e.g. #00BFFF</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.CustomColor.Placeholder">#00BFFF</sys:String>
     <sys:String x:Key="Setup.Ui.Theme.Dark">Dark</sys:String>
     <sys:String x:Key="Setup.Ui.Theme.DarkColor">Dark theme color</sys:String>
     <sys:String x:Key="Setup.Ui.Theme.DarkColor.ToolTip">Default theme color in dark mode</sys:String>

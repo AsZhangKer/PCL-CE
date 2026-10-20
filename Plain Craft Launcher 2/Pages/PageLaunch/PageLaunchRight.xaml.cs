@@ -27,6 +27,126 @@ public partial class PageLaunchRight : IRefreshable
         Loaded += (_, _) => Init();
         Loaded += (_, _) => Refresh();
         Unloaded += (_, _) => _DisposeHomepageLiveWatcher();
+        Loaded += (_, _) => RefreshInstanceList();
+        ModInstanceList.mcInstanceListLoader.LoadingStateChanged += (_, _) => RefreshInstanceList();
+        ModFolder.mcFolderListLoader.LoadingStateChanged += (_, _) => RefreshInstanceList();
+    }
+
+    private void RefreshInstanceList()
+    {
+        ModBase.RunInUi(() =>
+        {
+            // 首屏确认 Minecraft 文件夹尚未就绪时，等待 PageLaunchLeft 流程确定后再加载
+            if (string.IsNullOrEmpty(ModFolder.mcFolderSelected))
+                return;
+            // 确保实例列表已加载（首屏未触发过加载时主动加载）
+            if (ModInstanceList.mcInstanceListLoader.State != ModBase.LoadState.Finished &&
+                ModInstanceList.mcInstanceListLoader.State != ModBase.LoadState.Loading)
+            {
+                ModLoader.LoaderFolderRun(ModInstanceList.mcInstanceListLoader, ModFolder.mcFolderSelected,
+                    ModLoader.LoaderFolderRunType.ForceRun, 1, @"versions\");
+                return;
+            }
+            UpdateInstanceListUI();
+        });
+    }
+
+    private void UpdateInstanceListUI()
+    {
+        try
+        {
+            var selectedPath = ModInstanceList.McMcInstanceSelected?.PathInstance;
+            if (StackInstanceList.Children.Count == 0 ||
+                _lastInstanceListSource != ModInstanceList.mcInstanceList)
+            {
+                BuildInstanceListItems();
+            }
+            // 更新选中状态（不重建控件，避免卡死）
+            foreach (var child in StackInstanceList.Children.OfType<MyListItem>())
+            {
+                var instance = (McInstance)child.Tag;
+                var isSelected = instance is not null && (instance.PathInstance ?? "") == (selectedPath ?? "");
+                child.SetChecked(isSelected, false, false);
+            }
+            PanInstanceListCard.Visibility = StackInstanceList.Children.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+        catch (Exception ex)
+        {
+            ModBase.Log(ex, "刷新主页实例列表失败");
+        }
+    }
+
+    private object _lastInstanceListSource;
+    private bool _instanceListBuilding;
+
+    private void BuildInstanceListItems()
+    {
+        if (_instanceListBuilding)
+            return;
+        _instanceListBuilding = true;
+        try
+        {
+            StackInstanceList.Children.Clear();
+            _lastInstanceListSource = ModInstanceList.mcInstanceList;
+            foreach (var pair in ModInstanceList.mcInstanceList)
+            {
+                foreach (var instance in pair.Value)
+                {
+                    var item = new MyListItem
+                    {
+                        Title = instance.Name,
+                        Info = instance.GetDefaultDescription(),
+                        Height = 42,
+                        Tag = instance,
+                        Type = MyListItem.CheckType.Clickable
+                    };
+                    try
+                    {
+                        if (instance.Logo.EndsWith(@"PCL\Logo.png"))
+                            item.Logo = instance.PathInstance + @"PCL\Logo.png";
+                        else
+                            item.Logo = instance.Logo;
+                    }
+                    catch
+                    {
+                        item.Logo = "pack://application:,,,/images/Blocks/RedstoneBlock.png";
+                    }
+                    var clickedInstance = instance;
+                    item.Click += (_, _) => SwitchInstance(clickedInstance);
+                    StackInstanceList.Children.Add(item);
+                }
+            }
+        }
+        finally
+        {
+            _instanceListBuilding = false;
+        }
+    }
+
+    private void SwitchInstance(McInstance instance)
+    {
+        if (instance.state == McInstanceState.Error)
+        {
+            PageInstanceOverall.OpenVersionFolder(instance);
+            return;
+        }
+        try
+        {
+            instance.Load();
+            if (!instance.Check())
+            {
+                PageInstanceOverall.OpenVersionFolder(instance);
+                return;
+            }
+            ModInstanceList.McMcInstanceSelected = instance;
+            States.Game.SelectedInstance = instance.Name;
+            UpdateInstanceListUI();
+            ModMain.frmLaunchLeft.RefreshButtonsUI();
+        }
+        catch (Exception ex)
+        {
+            ModBase.Log(ex, "切换实例失败");
+        }
     }
 
     private void Init()

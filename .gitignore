@@ -346,3 +346,8 @@ MaskFiles/
 # macOS
 
 **/.DS_Store
+
+# 本地密钥文件（勿提交）
+.env.local
+# 本地构建产物
+/artifact/

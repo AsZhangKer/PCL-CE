@@ -106,77 +106,7 @@ public static partial class Config
         [ConfigItem<bool>("ToolUpdateSnapshot", false)] public partial bool SnapshotNotification { get; set; }
     }
 
-    /// <summary>
-    /// 更新配置。
-    /// </summary>
-    [ConfigGroup("Update")] partial class UpdateConfigGroup
-    {
-        /// <summary>
-        /// 自动更新行为。
-        /// </summary>
-        [ConfigItem<LauncherAutoUpdateBehavior>("SystemSystemUpdate", LauncherAutoUpdateBehavior.DownloadAndAnnounce, ConfigSource.Local)] public partial LauncherAutoUpdateBehavior UpdateMode { get; set; }
-
-        /// <summary>
-        /// 更新分支。
-        /// </summary>
-        [ConfigItem<UpdateChannel>("SystemUpdateChannel", UpdateChannel.Release, ConfigSource.Local)] public partial UpdateChannel UpdateChannel { get; set; }
-            
-        /// <summary>
-        /// Mirror 酱 CDK。
-        /// </summary>
-        [ConfigItem<string>("SystemMirrorChyanKey", "", ConfigSource.SharedEncrypt)] public partial string MirrorChyanKey { get; set; }
-    }
-
-    /// <summary>
-    /// 联机大厅配置。
-    /// </summary>
-    [ConfigGroup("Link")] partial class LinkConfigGroup
-    {
-        /// <summary>
-        /// 大厅用户名。
-        /// </summary>
-        [ConfigItem<string>("LinkUsername", "")] public partial string Username { get; set; }
-
-        /// <summary>
-        /// 中继方式。
-        /// </summary>
-        [ConfigItem<LinkRelayBehavior>("LinkRelayType", LinkRelayBehavior.Default)] public partial LinkRelayBehavior RelayType { get; set; }
-
-        /// <summary>
-        /// 中继服务器类型 (社区/自有)。
-        /// </summary>
-        [ConfigItem<int>("LinkServerType", 1)] public partial int ServerType { get; set; }
-
-        /// <summary>
-        /// 延迟优先模式。
-        /// </summary>
-        [ConfigItem<bool>("LinkLatencyFirstMode", true)] public partial bool UseLatencyFirstMode { get; set; }
-
-        /// <summary>
-        /// 自定义中继服务器。
-        /// </summary>
-        [ConfigItem<string>("LinkRelayServer", "")] public partial string CustomRelayServer { get; set; }
-
-        /// <summary>
-        /// 传输协议优先策略。
-        /// </summary>
-        [ConfigItem<LinkProtocolPreference>("LinkProtocolPreference", LinkProtocolPreference.Tcp)] public partial LinkProtocolPreference ProtocolPreference { get; set; }
-
-        /// <summary>
-        /// 尝试使用端口猜测打通对称性 NAT。
-        /// </summary>
-        [ConfigItem<bool>("LinkTryPunchSym", true)] public partial bool TryPunchSym { get; set; }
-
-        /// <summary>
-        /// 启用 IPv6。
-        /// </summary>
-        [ConfigItem<bool>("LinkEnableIPv6", true)] public partial bool EnableIPv6 { get; set; }
-        
-        /// <summary>
-        /// 在日志中输出 Cli 信息以用于调试。
-        /// </summary>
-        [ConfigItem<bool>("LinkEnableCliOutput", false)] public partial bool EnableCliOutput { get; set; }
-    }
+    // 自动更新模块已移除：UpdateConfigGroup（SystemSystemUpdate / SystemUpdateChannel / SystemMirrorChyanKey）不再需要
 
     /// <summary>
     /// 个性化配置。
@@ -273,6 +203,16 @@ public static partial class Config
             /// 窗口透明度。
             /// </summary>
             [ConfigItem<int>("UiLauncherTransparent", 600, ConfigSource.Local)] public partial int WindowOpacity { get; set; }
+
+            /// <summary>
+            /// 自定义主题色 (十六进制，如 #00BFFF 或 00BFFF)。
+            /// </summary>
+            [ConfigItem<string>("UiCustomThemeColor", "#00BFFF", ConfigSource.Local)] public partial string CustomColor { get; set; }
+
+            /// <summary>
+            /// 自定义微软 OAuth Client ID（可为空；非空时优先于编译注入值，用于已获 Minecraft API 权限的客户端）。
+            /// </summary>
+            [ConfigItem<string>("UiMsClientId", "", ConfigSource.Local)] public partial string MsClientId { get; set; }
 
             /// <summary>
             /// 自定义主题：色相 (H)。
@@ -438,13 +378,11 @@ public static partial class Config
             [ConfigItem<bool>("UiHiddenSetupGameManage", false, ConfigSource.Local)] public partial bool SetupGameManage { get; set; }
             [ConfigItem<bool>("UiHiddenSetupJava", false, ConfigSource.Local)] public partial bool SetupJava { get; set; }
             [ConfigItem<bool>("UiHiddenSetupUpdate", false, ConfigSource.Local)] public partial bool SetupUpdate { get; set; }
-            [ConfigItem<bool>("UiHiddenSetupGameLink", false, ConfigSource.Local)] public partial bool SetupGameLink { get; set; } // 新增
             [ConfigItem<bool>("UiHiddenSetupAbout", false, ConfigSource.Local)] public partial bool SetupAbout { get; set; } // 修正名称
             [ConfigItem<bool>("UiHiddenSetupFeedback", false, ConfigSource.Local)] public partial bool SetupFeedback { get; set; } // 修正名称
             [ConfigItem<bool>("UiHiddenSetupLog", false, ConfigSource.Local)] public partial bool SetupLog { get; set; } // 修正名称
 
             // 子页面 工具
-            [ConfigItem<bool>("UiHiddenToolsGameLink", false, ConfigSource.Local)] public partial bool ToolsGameLink { get; set; } // 新增
             [ConfigItem<bool>("UiHiddenToolsTest", false, ConfigSource.Local)] public partial bool ToolsTest { get; set; } // 新增
 
             // 子页面 实例设置

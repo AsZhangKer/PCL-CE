@@ -1,15 +1,6 @@
 namespace PCL.Core.App;
 
 /// <summary>
-/// 联机协议偏好
-/// </summary>
-public enum LinkProtocolPreference
-{
-    Tcp,
-    Udp
-}
-
-/// <summary>
 /// 主题模式（亮/暗/系统）
 /// </summary>
 public enum ColorMode
@@ -27,17 +18,24 @@ public enum ColorTheme
     SkyBlue = 0,
     CatBlue = 1,
     DeathBlue = 2,
-    HmclBlue = 3
-}
+    HmclBlue = 3,
+    Pink = 4,
+    Violet = 5,
+    Green = 6,
+    Orange = 7,
+    Red = 8,
+    Browns = 9,
+    Custom = 10,
 
-/// <summary>
-/// 更新通道
-/// </summary>
-public enum UpdateChannel
-{
-    Release = 0,
-    Beta = 1,
-    Dev = 2
+    // ---- 社区版扩展主题 ----
+    // 注意：必须追加在 Custom 之后，因为 UI 下拉框的 SelectedIndex 直接等于枚举值，
+    // 在中间插入会打乱已保存配置（如旧的 Custom=10）的语义。
+    Cyan = 11,
+    Mint = 12,
+    Indigo = 13,
+    Amber = 14,
+    Sakura = 15,
+    Steel = 16
 }
 
 /// <summary>
@@ -85,26 +83,6 @@ public enum JvmPreferredIpStack
     PreferV4 = 0,
     Default = 1,
     PreferV6 = 2
-}
-
-/// <summary>
-/// 联机中继行为
-/// </summary>
-public enum LinkRelayBehavior
-{
-    Default = 0,
-    ForceRelay = 1
-}
-
-/// <summary>
-/// 启动器更新行为
-/// </summary>
-public enum LauncherAutoUpdateBehavior
-{
-    DownloadAndInstall = 0,
-    DownloadAndAnnounce = 1,
-    AnnounceOnly = 2,
-    Disable = 3
 }
 
 public enum LauncherTitleType

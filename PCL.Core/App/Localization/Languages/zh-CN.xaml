@@ -3150,10 +3150,30 @@
 
     <!-- Setup.Ui.Theme -->
 
+    <sys:String x:Key="Setup.Ui.Theme.Color.Custom">自定义</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Browns">曜石棕</sys:String>
     <sys:String x:Key="Setup.Ui.Theme.Color.CatBlue">龙猫蓝</sys:String>
     <sys:String x:Key="Setup.Ui.Theme.Color.CrashBlue">死机蓝</sys:String>
-    <sys:String x:Key="Setup.Ui.Theme.Color.Hmcl">HMCL</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Green">青翠绿</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Hmcl">HMCL 紫</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Orange">暖橙</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Pink">樱花粉</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Red">枫叶红</sys:String>
     <sys:String x:Key="Setup.Ui.Theme.Color.SkyBlue">天空蓝</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Violet">暮光紫</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Cyan">青碧</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Mint">薄荷绿</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Indigo">靛蓝</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Amber">琥珀金</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Sakura">晚樱</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Steel">石墨灰</sys:String>
+    <sys:String x:Key="Setup.Ui.MsClientId">微软 Client ID</sys:String>
+    <sys:String x:Key="Setup.Ui.MsClientId.Hint">留空使用内置值；登录 403 时填写已获 Minecraft 权限的 Client ID</sys:String>
+    <sys:String x:Key="Setup.Ui.MsClientId.Placeholder">仅填写已获 Minecraft API 权限的应用 ID</sys:String>
+    <sys:String x:Key="Setup.Ui.MsClientId.ToolTip">用于微软正版登录的 OAuth Client ID，必须已向微软申请 Minecraft API 权限，否则登录会被拒绝 (403)</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.CustomColor">自定义颜色</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.CustomColor.Hint">输入十六进制颜色，如 #00BFFF</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.CustomColor.Placeholder">#00BFFF</sys:String>
     <sys:String x:Key="Setup.Ui.Theme.Dark">深色</sys:String>
     <sys:String x:Key="Setup.Ui.Theme.DarkColor">深色配色</sys:String>
     <sys:String x:Key="Setup.Ui.Theme.DarkColor.ToolTip">在深色模式下默认的主题配色</sys:String>

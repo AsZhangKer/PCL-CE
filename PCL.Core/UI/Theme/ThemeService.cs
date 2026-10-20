@@ -55,6 +55,25 @@ public sealed partial class ThemeService
         }
     );
 
+    [RegisterConfigEvent]
+    public static ConfigEventRegistry OnCustomColorConfigChanged => new(
+        scope: Config.Preference.Theme.CustomColorConfig,
+        trigger: ConfigEvent.Update,
+        handler: e =>
+        {
+            if (e.OldValue == e.Value) return;
+            if (CurrentTheme != ColorTheme.Custom) return;
+            if (Lifecycle.CurrentState > LifecycleState.Loading)
+            {
+                Lifecycle.CurrentApplication.Dispatcher.BeginInvoke(() =>
+                {
+                    ApplyColorResources();
+                    ColorThemeChanged?.Invoke(CurrentTheme);
+                });
+            }
+        }
+    );
+
     [LifecycleStart]
     private static void _Start()
     {
@@ -103,7 +122,6 @@ public sealed partial class ThemeService
     {
         // for HMCL theme on April Fools' Day
         if (Basics.IsAprilFool) Config.Preference.WindowTitleTypeConfig.TriggerEvent(ConfigEvent.Changed, null);
-        else if (CurrentTheme == ColorTheme.HmclBlue) CurrentTheme = ColorTheme.CatBlue;
     }
 
     /// <summary>
@@ -157,12 +175,76 @@ public sealed partial class ThemeService
             ColorTheme.CatBlue => (255, 0, -0.2),
             ColorTheme.DeathBlue => (268, -0.05, -0.1),
             ColorTheme.HmclBlue => (275, -0.03, -0.35),
+            ColorTheme.Pink => (345, 0.05, 0.1),
+            ColorTheme.Violet => (290, 0.05, 0.15),
+            ColorTheme.Green => (145, 0.1, 0.1),
+            ColorTheme.Orange => (30, 0.1, 0.2),
+            ColorTheme.Red => (10, 0.08, 0.2),
+            ColorTheme.Browns => (25, -0.1, 0.4),
+            // ---- 社区版扩展主题（Hue 色相 / LightAdjust 明度修正 / ChromaAdjust 彩度修正）----
+            ColorTheme.Cyan => (190, 0.02, 0.12),
+            ColorTheme.Mint => (165, 0.08, 0.18),
+            ColorTheme.Indigo => (228, -0.04, 0.05),
+            ColorTheme.Amber => (48, 0.06, 0.25),
+            ColorTheme.Sakura => (322, 0.08, 0.18),
+            ColorTheme.Steel => (212, -0.12, -0.45),
+            ColorTheme.Custom => _GetCustomThemeArgs(),
 #if DEBUG
             _ => ((int)theme, 0, 0)
 #else
             _ => throw new IndexOutOfRangeException($"Invalid theme index: {(int)theme}")
 #endif
         };
+    }
+
+    /// <summary>
+    /// 从用户自定义的十六进制颜色解析主题参数 (色相 Hue)。
+    /// </summary>
+    private static (int Hue, double LightAdjust, double ChromaAdjust) _GetCustomThemeArgs()
+    {
+        if (!TryParseHexColor(Config.Preference.Theme.CustomColor, out var r, out var g, out var b))
+            return (_ParseHueFromRgb(255, 255, 255), 0, 0.2);
+        var hue = _ParseHueFromRgb(r, g, b);
+        // 根据亮度调整，保证暗色模式下依然有足够对比度
+        var luma = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0;
+        var lightAdjust = (luma > 0.6 ? -0.08 : 0.28) * luma;
+        return (hue, lightAdjust, 0.2);
+    }
+
+    private static bool TryParseHexColor(string hex, out double r, out double g, out double b)
+    {
+        r = g = b = 0;
+        if (string.IsNullOrWhiteSpace(hex)) return false;
+        var text = hex.Trim().TrimStart('#');
+        if (text.Length != 6) return false;
+        for (var i = 0; i < 6; i++)
+            if (!Uri.IsHexDigit(text[i]))
+                return false;
+        r = Convert.ToInt32(text.Substring(0, 2), 16);
+        g = Convert.ToInt32(text.Substring(2, 2), 16);
+        b = Convert.ToInt32(text.Substring(4, 2), 16);
+        return true;
+    }
+
+    private static int _ParseHueFromRgb(double r, double g, double b)
+    {
+        var rn = r / 255.0;
+        var gn = g / 255.0;
+        var bn = b / 255.0;
+        var max = Math.Max(rn, Math.Max(gn, bn));
+        var min = Math.Min(rn, Math.Min(gn, bn));
+        var delta = max - min;
+        if (Math.Abs(delta) < 1e-6) return 0;
+        double hue;
+        if (max == rn)
+            hue = ((gn - bn) / delta) % 6.0;
+        else if (max == gn)
+            hue = ((bn - rn) / delta) + 2.0;
+        else
+            hue = ((rn - gn) / delta) + 4.0;
+        hue *= 60.0;
+        if (hue < 0) hue += 360.0;
+        return (int)Math.Round(hue);
     }
 
     private static double _AdjustLinear(double value, double adjustment)

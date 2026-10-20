@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Compression;
@@ -839,6 +839,12 @@ public static class ModLaunch
         skipAuth = false;
         string[] tokens;
 
+        // ClientID 缺失时在本地立即报错，避免走到微软接口才拿到晦涩的 invalid_client / AADSTS700016
+        if (string.IsNullOrWhiteSpace(Secrets.MSOAuthClientId))
+            throw new InvalidOperationException(
+                "未配置 Microsoft OAuth ClientID。请在「设置 → 界面 → 微软登录 ClientID」中填写，" +
+                "或设置环境变量 PCL_MS_CLIENT_ID 后重新构建（见 build.ps1 / .env.local）。");
+
         while (true)
         {
             if (string.IsNullOrEmpty(input.OAuthRefreshToken))
@@ -952,7 +958,9 @@ public static class ModLaunch
             };
 
             using (var response = HttpRequest
-                       .CreatePost("https://login.live.com/oauth20_token.srf")
+                       // 必须与 device code 流程保持同一 v2 端点：v2 颁发的 refresh_token
+                       // 用旧版 login.live.com/oauth20_token.srf 刷新会返回 invalid_grant
+                       .CreatePost("https://login.microsoftonline.com/consumers/oauth2/v2.0/token")
                        .WithFormContent(parameters)
                        .SendAsync()
                        .GetAwaiter()
