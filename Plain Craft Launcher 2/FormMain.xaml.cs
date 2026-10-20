@@ -109,9 +109,6 @@ public partial class FormMain
         PanMainRight.Child = ModMain.frmLaunchRight;
         pageRight = ModMain.frmLaunchRight;
         ModMain.frmLaunchRight.PageState = MyPageRight.PageStates.ContentStay;
-        // 调试模式提醒
-        if (ModBase.modeDebug)
-            HintService.Hint(Lang.Text("Main.DebugMode.Hint"));
         // 尽早执行的加载池
         ModFolder.mcFolderListLoader
             .Start(0); // 为了让下载已存在文件检测可以正常运行，必须跑一次；为了让启动按钮尽快可用，需要尽早执行；为了与 PageLaunchLeft 联动，需要为 0 而不是 GetUuid

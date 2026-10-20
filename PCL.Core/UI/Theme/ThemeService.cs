@@ -166,9 +166,13 @@ public sealed partial class ThemeService
     /// <summary>
     /// 获取当前色彩主题对应的各种参数。
     /// </summary>
-    public static (int Hue, double LightAdjust, double ChromaAdjust) GetCurrentThemeArgs()
+    public static (int Hue, double LightAdjust, double ChromaAdjust) GetCurrentThemeArgs() => GetThemeArgs(CurrentTheme);
+
+    /// <summary>
+    /// 获取指定色彩主题对应的各种参数（不依赖当前配色模式）。
+    /// </summary>
+    public static (int Hue, double LightAdjust, double ChromaAdjust) GetThemeArgs(ColorTheme theme)
     {
-        var theme = CurrentTheme;
         return theme switch
         {
             ColorTheme.SkyBlue => (235, 0.36, 0.2),
@@ -188,6 +192,9 @@ public sealed partial class ThemeService
             ColorTheme.Amber => (48, 0.06, 0.25),
             ColorTheme.Sakura => (322, 0.08, 0.18),
             ColorTheme.Steel => (212, -0.12, -0.45),
+            ColorTheme.Olive => (80, 0.02, 0.05),
+            ColorTheme.Crimson => (352, 0.02, 0.15),
+            ColorTheme.Neptune => (205, -0.02, 0.1),
             ColorTheme.Custom => _GetCustomThemeArgs(),
 #if DEBUG
             _ => ((int)theme, 0, 0)
@@ -315,6 +322,21 @@ public sealed partial class ThemeService
     {
         var cache = IsDarkMode ? DarkGrayCache : LightGrayCache;
         foreach (var c in cache) c.Apply();
+    }
+
+    /// <summary>
+    /// 计算指定主题在指定配色模式下的代表色（即 Color2 主色），用于设置界面中的色块预览。
+    /// </summary>
+    /// <param name="theme">要预览的色彩主题</param>
+    /// <param name="isDark">是否按深色模式的色调计算</param>
+    public static System.Windows.Media.Color GetThemePreviewColor(ColorTheme theme, bool isDark)
+    {
+        var tone = isDark ? ToneProfiles.Dark : ToneProfiles.Light;
+        var (hue, lightAdjust, chromaAdjust) = GetThemeArgs(theme);
+        // 与 _CalculateColors 中 Color2 的算法保持一致，确保预览色与实际主色相同
+        return LabColor
+            .FromLch(_AdjustLinear(tone.L2, lightAdjust), _AdjustLinear(tone.C2, chromaAdjust), hue)
+            .ToWpfColor();
     }
 
     /// <summary>

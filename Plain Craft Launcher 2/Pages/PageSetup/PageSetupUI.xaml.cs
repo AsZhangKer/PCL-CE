@@ -2,6 +2,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using PCL.Core.App;
 using PCL.Core.App.Configuration;
 using PCL.Core.UI;
@@ -13,7 +14,18 @@ namespace PCL;
 
 public partial class PageSetupUI
 {
-    public string[] ThemeColors =>
+    public string[] ThemeColors => _CreateThemeColorNames();
+
+    private static bool _themeColorMismatchLogged;
+
+    /// <summary>
+    /// 构造主题名称列表。索引必须与 <see cref="ColorTheme"/> 枚举值严格一一对应，
+    /// 因为设置页的下拉框是直接用 SelectedIndex 当枚举值来存取的，错位会导致用户配置串味。
+    /// 注意不能缓存结果：切换语言后名称需要重新取本地化文本。
+    /// </summary>
+    private static string[] _CreateThemeColorNames()
+    {
+        string[] names =
         [
             Lang.Text("Setup.Ui.Theme.Color.SkyBlue"), Lang.Text("Setup.Ui.Theme.Color.CatBlue"),
             Lang.Text("Setup.Ui.Theme.Color.CrashBlue"), Lang.Text("Setup.Ui.Theme.Color.Hmcl"),
@@ -24,8 +36,23 @@ public partial class PageSetupUI
             // ---- 扩展主题（索引必须与 ColorTheme 枚举值一一对应）----
             Lang.Text("Setup.Ui.Theme.Color.Cyan"), Lang.Text("Setup.Ui.Theme.Color.Mint"),
             Lang.Text("Setup.Ui.Theme.Color.Indigo"), Lang.Text("Setup.Ui.Theme.Color.Amber"),
-            Lang.Text("Setup.Ui.Theme.Color.Sakura"), Lang.Text("Setup.Ui.Theme.Color.Steel")
+            Lang.Text("Setup.Ui.Theme.Color.Sakura"), Lang.Text("Setup.Ui.Theme.Color.Steel"),
+            Lang.Text("Setup.Ui.Theme.Color.Olive"), Lang.Text("Setup.Ui.Theme.Color.Crimson"),
+            Lang.Text("Setup.Ui.Theme.Color.Neptune")
         ];
+        // 防御性检查：增删主题时若忘了同步枚举或此数组，这里会留下日志线索（只记一次，避免刷屏）
+        if (!_themeColorMismatchLogged)
+        {
+            var expected = System.Enum.GetValues<ColorTheme>().Length;
+            if (names.Length != expected)
+            {
+                _themeColorMismatchLogged = true;
+                ModBase.Log($"[UI] 主题名称数量 {names.Length} 与 ColorTheme 枚举数量 {expected} 不一致，主题选择可能错位",
+                    ModBase.LogLevel.Debug);
+            }
+        }
+        return names;
+    }
     
     public new bool isLoaded;
 
@@ -65,6 +92,7 @@ public partial class PageSetupUI
             ComboDarkMode.SelectedIndex = (int)Config.Preference.Theme.ColorMode;
             ComboDarkColor.SelectedIndex = (int)Config.Preference.Theme.DarkColor;
             ComboLightColor.SelectedIndex = (int)Config.Preference.Theme.LightColor;
+            RefreshThemeColorPreview();
             if (TextCustomColor is not null)
             {
                 _isReloadingCustomColor = true;
@@ -686,7 +714,22 @@ public partial class PageSetupUI
         var sender = (MyComboBox)senderRaw;
         SetByTag(sender.Tag?.ToString(), sender.SelectedIndex);
         UpdateCustomColorVisibility();
+        // 配置已同步写入，直接按最新配置刷新色块预览
+        RefreshThemeColorPreview();
         ThemeManager.ThemeRefresh();
+    }
+
+    /// <summary>
+    /// 刷新主题色块预览：浅色/深色两列分别按对应模式的色调计算所选主题的主色。
+    /// </summary>
+    private void RefreshThemeColorPreview()
+    {
+        if (BorderLightThemeColor is not null)
+            BorderLightThemeColor.Background = new SolidColorBrush(
+                ThemeService.GetThemePreviewColor(Config.Preference.Theme.LightColor, false));
+        if (BorderDarkThemeColor is not null)
+            BorderDarkThemeColor.Background = new SolidColorBrush(
+                ThemeService.GetThemePreviewColor(Config.Preference.Theme.DarkColor, true));
     }
 
     // 自定义主题色输入
@@ -716,6 +759,8 @@ public partial class PageSetupUI
         // 配置变更会通过 OnCustomColorConfigChanged 自动刷新配色资源
         if (ThemeService.CurrentTheme != ColorTheme.Custom)
             ThemeManager.ThemeRefresh();
+        // 自定义色也是主题的一种，色块预览要跟着更新
+        RefreshThemeColorPreview();
     }
 
     private bool _isReloadingCustomColor;

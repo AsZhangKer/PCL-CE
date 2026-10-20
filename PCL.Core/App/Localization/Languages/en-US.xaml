@@ -1840,7 +1840,6 @@
     <!-- Main -->
 
     <sys:String x:Key="Main.April.Nope">Muda!</sys:String>
-    <sys:String x:Key="Main.DebugMode.Hint">[Debug mode] PCL CE is running in debug mode, which may cause performance degradation. Please do NOT enable it unless necessary!</sys:String>
     <sys:String x:Key="Main.Error.OperationFailed">A launcher interface operation failed. See the details below.</sys:String>
     <sys:String x:Key="Main.Error.ScrollToTopFailed">Could not return to the top of the page.</sys:String>
     <sys:String x:Key="Main.Eula.Message">Before using PCL CE, please review and agree to the Terms of Service and Disclaimer.</sys:String>
@@ -1857,12 +1856,6 @@
     <sys:String x:Key="Main.HiddenFeature.Disabled">The feature hiding setting has been temporarily disabled!</sys:String>
     <sys:String x:Key="Main.HiddenFeature.Enabled">The feature hiding setting has been re-enabled!</sys:String>
     <sys:String x:Key="Main.ShutdownMinecraft.Success">Minecraft instance closed!</sys:String>
-    <sys:String x:Key="Main.SpecialVersion.CiHint">The current PCL CE build is an automated CI build.&#xA;This build includes the latest bug fixes, optimizations, and new features, but its performance and stability are lower. It is not suitable for daily use or creating modpacks.&#xA;&#xA;Unless a community developer asks you to use it, or you specifically want to do so, please use the latest stable version instead.</sys:String>
-    <sys:String x:Key="Main.SpecialVersion.DebugHint">The current PCL CE build is a Debug build.&#xA;This build is only intended for developer debugging and may have serious performance issues or various unexpected network problems.&#xA;&#xA;Problems caused by non-developer users running this build are not supported by the community, and related issues may be closed directly.&#xA;Unless you are a developer, please delete this build immediately and use the latest stable version instead.</sys:String>
-    <sys:String x:Key="Main.SpecialVersion.HideHintNotice">You can add the PCL_DISABLE_DEBUG_HINT environment variable with any value to hide this prompt.</sys:String>
-    <sys:String x:Key="Main.SpecialVersion.IUnderstand">I know what I am doing</sys:String>
-    <sys:String x:Key="Main.SpecialVersion.OpenDownloadPageAndExit">Open latest download page and exit</sys:String>
-    <sys:String x:Key="Main.SpecialVersion.Title">Special build notice</sys:String>
     <sys:String x:Key="Main.Tab.Download">Download</sys:String>
     <sys:String x:Key="Main.Tab.Launch">Launch</sys:String>
     <sys:String x:Key="Main.Tab.Settings">Settings</sys:String>
@@ -2475,7 +2468,7 @@
     <sys:String x:Key="Setup.About.UpstreamLegal.PrivacyText">The User Agent of this software includes the launcher version number to count the number of users on each version.&#xD;Other than this, this software will not upload any other information to the developers.</sys:String>
     <sys:String x:Key="Setup.About.UpstreamLegal.TermsAndDisclaimer">ToS &amp; Disclaimer</sys:String>
     <sys:String x:Key="Setup.About.UpstreamLegal.Title">Upstream legal information</sys:String>
-    <sys:String x:Key="Setup.About.Version.Info">Current version: %VERSION% (%BRANCH%, %VERSIONCODE%, %COMMIT_HASH%)</sys:String>
+    <sys:String x:Key="Setup.About.Version.Info">Current version: %VERSION% (%VERSIONCODE%, %COMMIT_HASH%)</sys:String>
 
     <!-- Setup.About.EasterEgg -->
 
@@ -3168,6 +3161,9 @@
     <sys:String x:Key="Setup.Ui.Theme.Color.Amber">Amber Gold</sys:String>
     <sys:String x:Key="Setup.Ui.Theme.Color.Sakura">Late Sakura</sys:String>
     <sys:String x:Key="Setup.Ui.Theme.Color.Steel">Graphite</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Olive">Olive</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Crimson">Crimson</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Neptune">Neptune Blue</sys:String>
     <sys:String x:Key="Setup.Ui.MsClientId">Microsoft Client ID</sys:String>
     <sys:String x:Key="Setup.Ui.MsClientId.Hint">Leave empty to use built-in value; fill an approved Client ID if login gets 403</sys:String>
     <sys:String x:Key="Setup.Ui.MsClientId.Placeholder">Only fill an App ID approved for Minecraft API</sys:String>

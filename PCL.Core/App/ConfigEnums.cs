@@ -35,7 +35,10 @@ public enum ColorTheme
     Indigo = 13,
     Amber = 14,
     Sakura = 15,
-    Steel = 16
+    Steel = 16,
+    Olive = 17,
+    Crimson = 18,
+    Neptune = 19
 }
 
 /// <summary>

@@ -34,7 +34,7 @@ public partial class PageSetupAbout
         isLoaded = true;
 
         ItemAboutPcl.Info = ItemAboutPcl.Info.Replace("%VERSION%", ModBase.versionBaseName)
-            .Replace("%VERSIONCODE%", ModBase.versionCode.ToString()).Replace("%BRANCH%", ModBase.versionBranchName)
+            .Replace("%VERSIONCODE%", ModBase.versionCode.ToString())
             .Replace("%COMMIT_HASH%", ModBase.commitHashShort);
 
         if (!Lang.IsChineseMainland)

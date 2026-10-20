@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -292,11 +292,10 @@ public sealed partial class ConfigService
             var currentSection = _isConfigItemsInitialized ? "OBSERVER" :
                 _isProvidersInitialized ? "CONFIG_ITEM" : "PROVIDER";
             string msg;
-#if DEBUG
-            msg = Lang.Text("Config.Error.LoadFailed.DebugMessage", currentSection);
-#else
             if (ex is ConfigFileInitException e)
             {
+                // 配置文件损坏时，无论 Debug 还是正式构建都先备份并尝试回滚，
+                // 否则调试版一旦配置损坏就直接起不来（这正是调试版以前的行为）
                 var filePath = e.Path;
                 var backupPath = e.Path + ".failbackup";
                 var bakPath = e.Path + ".bak";
@@ -310,9 +309,13 @@ public sealed partial class ConfigService
             }
             else
             {
+#if DEBUG
+                // Debug 构建额外暴露初始化阶段，方便定位是哪个环节炸的
+                msg = Lang.Text("Config.Error.LoadFailed.DebugMessage", currentSection);
+#else
                 msg = Lang.Text("Config.Error.LoadFailed.Message", currentSection);
-            }
 #endif
+            }
             Context.Fatal(msg, ex);
         }
 #if TRACE

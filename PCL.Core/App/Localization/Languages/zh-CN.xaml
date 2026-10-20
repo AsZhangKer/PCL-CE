@@ -1840,7 +1840,6 @@
     <!-- Main -->
 
     <sys:String x:Key="Main.April.Nope">木大！</sys:String>
-    <sys:String x:Key="Main.DebugMode.Hint">[调试模式] PCL CE 正以调试模式运行，这可能会导致性能下降，若无必要请不要开启！</sys:String>
     <sys:String x:Key="Main.Error.OperationFailed">启动器界面操作失败。请查看错误详情。</sys:String>
     <sys:String x:Key="Main.Error.ScrollToTopFailed">无法返回顶部。</sys:String>
     <sys:String x:Key="Main.Eula.Message">在使用 PCL CE 前，请同意 PCL 的用户协议与免责声明。</sys:String>
@@ -1857,12 +1856,6 @@
     <sys:String x:Key="Main.HiddenFeature.Disabled">功能隐藏设置已暂时关闭！</sys:String>
     <sys:String x:Key="Main.HiddenFeature.Enabled">功能隐藏设置已重新开启！</sys:String>
     <sys:String x:Key="Main.ShutdownMinecraft.Success">已关闭运行中的 Minecraft！</sys:String>
-    <sys:String x:Key="Main.SpecialVersion.CiHint">当前运行的 PCL CE 为 CI 自动构建版本。&#xA;该版本包含最新的漏洞修复、优化和新特性，但性能和稳定性较差，不适合日常使用和制作整合包。&#xA;&#xA;除非社区开发者要求或您自己想要这么做，否则请下载最新稳定版使用。</sys:String>
-    <sys:String x:Key="Main.SpecialVersion.DebugHint">当前运行的 PCL CE 为 Debug 版本。&#xA;该版本仅适合开发者调试运行，可能会有严重的性能下降以及各种奇怪的网络问题。&#xA;&#xA;非开发者用户使用该版本造成的一切问题均不被社区支持，相关 issue 可能会被直接关闭。&#xA;除非您是开发者，否则请立即删除该版本，并下载最新稳定版使用。</sys:String>
-    <sys:String x:Key="Main.SpecialVersion.HideHintNotice">可以添加 PCL_DISABLE_DEBUG_HINT 环境变量 (任意值) 来隐藏这个提示。</sys:String>
-    <sys:String x:Key="Main.SpecialVersion.IUnderstand">我清楚我在做什么</sys:String>
-    <sys:String x:Key="Main.SpecialVersion.OpenDownloadPageAndExit">打开最新版下载页并退出</sys:String>
-    <sys:String x:Key="Main.SpecialVersion.Title">特殊版本提示</sys:String>
     <sys:String x:Key="Main.Tab.Download">下载</sys:String>
     <sys:String x:Key="Main.Tab.Launch">启动</sys:String>
     <sys:String x:Key="Main.Tab.Settings">设置</sys:String>
@@ -2475,7 +2468,7 @@
     <sys:String x:Key="Setup.About.UpstreamLegal.PrivacyText">本软件的 User Agent 中包含启动器的版本号，以统计各版本的用户数量。&#xD;除此之外，本软件不会向开发者上传任何其他信息。</sys:String>
     <sys:String x:Key="Setup.About.UpstreamLegal.TermsAndDisclaimer">用户协议与免责声明</sys:String>
     <sys:String x:Key="Setup.About.UpstreamLegal.Title">上游版权与法律信息</sys:String>
-    <sys:String x:Key="Setup.About.Version.Info">当前版本: %VERSION% (%BRANCH%, %VERSIONCODE%, %COMMIT_HASH%)</sys:String>
+    <sys:String x:Key="Setup.About.Version.Info">当前版本: %VERSION% (%VERSIONCODE%, %COMMIT_HASH%)</sys:String>
 
     <!-- Setup.About.EasterEgg -->
 
@@ -3168,6 +3161,9 @@
     <sys:String x:Key="Setup.Ui.Theme.Color.Amber">琥珀金</sys:String>
     <sys:String x:Key="Setup.Ui.Theme.Color.Sakura">晚樱</sys:String>
     <sys:String x:Key="Setup.Ui.Theme.Color.Steel">石墨灰</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Olive">橄榄绿</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Crimson">绯红</sys:String>
+    <sys:String x:Key="Setup.Ui.Theme.Color.Neptune">海神蓝</sys:String>
     <sys:String x:Key="Setup.Ui.MsClientId">微软 Client ID</sys:String>
     <sys:String x:Key="Setup.Ui.MsClientId.Hint">留空使用内置值；登录 403 时填写已获 Minecraft 权限的 Client ID</sys:String>
     <sys:String x:Key="Setup.Ui.MsClientId.Placeholder">仅填写已获 Minecraft API 权限的应用 ID</sys:String>

@@ -58,9 +58,19 @@
                                 <local:MyComboBoxItem Content="{DynamicResource Setup.Ui.Theme.Dark}" />
                                 <local:MyComboBoxItem Content="{DynamicResource Setup.Ui.Theme.FollowSystem}" /> <!-- default -->
                             </local:MyComboBox>
-                            <TextBlock Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center" Text="{DynamicResource Setup.Ui.Theme.LightColor}"/>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <Border x:Name="BorderLightThemeColor" Width="14" Height="14" CornerRadius="3" Margin="0,0,6,0"
+                                        BorderThickness="1" BorderBrush="{DynamicResource ColorBrushGray4}"
+                                        Background="{DynamicResource ColorBrush2}" />
+                                <TextBlock VerticalAlignment="Center" Text="{DynamicResource Setup.Ui.Theme.LightColor}"/>
+                            </StackPanel>
                             <local:MyComboBox Grid.Column="3" x:Name="ComboLightColor" Tag="UiLightColor" ItemsSource="{Binding ThemeColors}" SelectionChanged="ThemeColor_Change"/>
-                            <TextBlock Grid.Column="4" VerticalAlignment="Center" HorizontalAlignment="Center" Text="{DynamicResource Setup.Ui.Theme.DarkColor}"/>
+                            <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <Border x:Name="BorderDarkThemeColor" Width="14" Height="14" CornerRadius="3" Margin="0,0,6,0"
+                                        BorderThickness="1" BorderBrush="{DynamicResource ColorBrushGray4}"
+                                        Background="{DynamicResource ColorBrush2}" />
+                                <TextBlock VerticalAlignment="Center" Text="{DynamicResource Setup.Ui.Theme.DarkColor}"/>
+                            </StackPanel>
                             <local:MyComboBox Grid.Column="5" x:Name="ComboDarkColor" Tag="UiDarkColor" ItemsSource="{Binding ThemeColors}" SelectionChanged="ThemeColor_Change"/>
 
                         </Grid>
