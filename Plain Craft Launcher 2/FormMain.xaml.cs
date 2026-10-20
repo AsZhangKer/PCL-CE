@@ -34,23 +34,6 @@ public partial class FormMain
 
     #region 基础
 
-    // 更新日志
-    private void ShowUpdateLog()
-    {
-        ModBase.RunInNewThread(() =>
-        {
-            var changelogFile = $"{ModBase.pathTemp}CEUpdateLog.md";
-            string changelog;
-            if (File.Exists(changelogFile))
-                changelog = ModBase.ReadFile(changelogFile);
-            else
-                changelog = Lang.Text("Main.UpdateLog.Empty");
-            if (ModMain.MyMsgBoxMarkdown(changelog,
-                    Lang.Text("Main.UpdateLog.Title", ModBase.versionBranchName, ModBase.versionBaseName), Lang.Text("Common.Action.Confirm"), Lang.Text("Main.UpdateLog.FullChangelog")) ==
-                2) ModBase.OpenWebsite("https://github.com/PCL-Community/PCL2-CE/releases");
-        }, "UpdateLog Output");
-    }
-
     // 窗口加载
     private bool isWindowLoadFinished;
     private readonly DragHelper _helper = new();
@@ -70,19 +53,8 @@ public partial class FormMain
         // 版本号改变
         var lastVersion = States.System.LastVersion;
         if (lastVersion < ModBase.versionCode)
-        {
-            // 重新询问是否启用遥测数据收集
-            if (lastVersion <= 511)
-            {
-                if (!Config.System.TelemetryConfig.IsDefault() && Config.System.Telemetry)
-                {
-                    Config.System.TelemetryConfig.Reset();
-                    ModBase.Log("[Start] 遥测策略变更：由旧版本升级到含新版遥测的版本，已重置遥测设置");
-                }
-            }
             // 触发升级
             UpgradeSub(lastVersion);
-        }
         else if (lastVersion > ModBase.versionCode)
             // 触发降级
             DowngradeSub(lastVersion);
@@ -223,30 +195,7 @@ public partial class FormMain
             // 特殊版本提示
             try
             {
-
-
-#if DEBUG || DEBUGCI
-
-                if (Environment.GetEnvironmentVariable("PCL_DISABLE_DEBUG_HINT") is null)
-                {
-
-#if DEBUG
-                    var hint = Lang.Text("Main.SpecialVersion.DebugHint");
-#else
-                    var hint = Lang.Text("Main.SpecialVersion.CiHint");
-#endif
-
-                    ModMain.MyMsgBox(
-                        $"{hint}{"\r\n"}{"\r\n"}{Lang.Text("Main.SpecialVersion.HideHintNotice")}",
-                        Lang.Text("Main.SpecialVersion.Title"), Lang.Text("Main.SpecialVersion.IUnderstand"), Lang.Text("Main.SpecialVersion.OpenDownloadPageAndExit"), isWarn: true, button2Action: () =>
-                        {
-                            ModBase.OpenWebsite("https://github.com/PCL-Community/PCL2-CE/releases/latest");
-                            EndProgram(false);
-                        });
-                }
-
-
-#endif
+                // 开屏弹窗（Debug/CI 版本提示、EULA、遥测询问）已全部移除
                 // EULA 提示
                 if (!States.System.LauncherEula)
                     switch (ModMain.MyMsgBox(Lang.Text("Main.Eula.Message"), Lang.Text("Main.Eula.Title"), Lang.Text("Common.Action.Agree"), Lang.Text("Common.Action.Decline"), Lang.Text("Main.Eula.View"),
@@ -264,14 +213,7 @@ public partial class FormMain
                             }
                     }
 
-                // 遥测提示
-                if (Config.System.TelemetryConfig.IsDefault())
-                {
-                    var selection = ModMain.MyMsgBox(
-                                Lang.Text("Main.Telemetry.Message"),
-                                Lang.Text("Main.Telemetry.Title"), Lang.Text("Common.Action.Agree"), Lang.Text("Common.Action.Decline"));
-                    Config.System.TelemetryConfig.SetValue(selection == 1, forceNewValue: true);
-                }
+                // 遥测询问弹窗已移除：默认不启用遥测，需要时可在 设置 → 杂项 → 启用遥测数据收集 中手动开启
                 // 启动加载器池
                 try
                 {
@@ -340,8 +282,7 @@ public partial class FormMain
             return;
         if (lowerVersionCode >= ModBase.versionCode)
             return;
-        ShowUpdateLog();
-        
+
         // 重置自定义主页配置
         if (lastVersionCode < 521 && Config.Preference.Homepage.SelectedPreset >= 3)
         {
@@ -1367,7 +1308,7 @@ public partial class FormMain
         Download = 1,
 
         /// <summary>
-        ///     联机。
+        ///     工具。
         /// </summary>
         Tools = 3,
 
@@ -1604,9 +1545,8 @@ public partial class FormMain
 
             if (other is int o)
             {
-                if ((int)page == o)
-                    return false;
-                return additional is null;
+                // 与枚举值比较：页面类型相同且没有附加数据才算相等（此处原实现返回值相反，已修正）
+                return (int)page == o && additional is null;
             }
 
             return false;

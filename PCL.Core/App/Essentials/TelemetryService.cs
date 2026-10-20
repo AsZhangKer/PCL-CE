@@ -23,14 +23,18 @@ namespace PCL.Core.App.Essentials;
 [LifecycleService(LifecycleState.Running)]
 public sealed partial class TelemetryService
 {
-    private static void _InitSentry()
+    /// <summary>
+    /// 初始化 Sentry SDK。返回 false 表示未配置 DSN，此时整个遥测服务应直接跳过。
+    /// </summary>
+    private static bool _InitSentry()
     {
         Context.Info("开始初始化 Sentry SDK");
         var dsn = EnvironmentInterop.GetSecret("SENTRY_DSN");
         if (dsn is null)
         {
-            Context.Warn("未找到 Sentry DSN");
-            return;
+            // 自建分支通常不配置 DSN：这里不是错误，只记 Debug 级别，避免启动时刷警告
+            Context.Debug("未配置 Sentry DSN，遥测服务跳过");
+            return false;
         }
         
         var release = $"{Basics.VersionName}";
@@ -79,6 +83,7 @@ public sealed partial class TelemetryService
         });
         
         Context.Info("Sentry SDK 初始化完成");
+        return true;
     }
 
     // 错误上报
@@ -154,7 +159,8 @@ public sealed partial class TelemetryService
     private static async Task _StartAsync()
     {
         if (!Config.System.Telemetry) return;
-        _InitSentry();
+        // 没有 DSN 时没有任何上报目标，直接跳过后续的 STUN 探测与设备信息上报（原实现会白跑一遍）
+        if (!_InitSentry()) return;
         
         var appDataFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
 
