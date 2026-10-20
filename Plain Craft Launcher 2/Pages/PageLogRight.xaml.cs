@@ -127,9 +127,9 @@ public partial class PageLogRight
     {
         var sender = (MySlider)o;
         Config.System.MaxGameLog = sender.Value;
-        if (ModMain.frmSetupLauncherMisc is null)
+        if (ModMain.frmSetupGameManage is null)
             return;
-        ModMain.frmSetupLauncherMisc.SliderMaxLog.Value = sender.Value;
+        ModMain.frmSetupGameManage.SliderMaxLog.Value = sender.Value;
     }
 
     #endregion

@@ -1,6 +1,5 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
-using PCL.Core.App;
 using PCL.Core.App.Localization;
 
 namespace PCL;
@@ -12,51 +11,12 @@ public partial class PageSetupLeft
 
     private void PageSetupLeft_Loaded(object sender, RoutedEventArgs e)
     {
-        // 是否处于隐藏的子页面
-        var isHiddenPage = false;
-        var hide = Config.Preference.Hide;
-
-        if (ItemLaunch.Checked && hide.SetupLaunch) isHiddenPage = true;
-        if (ItemJava.Checked && hide.SetupJava) isHiddenPage = true;
-        if (ItemGameManage.Checked && hide.SetupGameManage)  isHiddenPage = true;
-        if (ItemUI.Checked && hide.SetupUi) isHiddenPage = true;
-        if (ItemLauncherLanguage.Checked && hide.SetupLauncherLanguage) isHiddenPage = true;
-        if (ItemLauncherMisc.Checked && hide.SetupLauncherMisc) isHiddenPage = true;
-        if (ItemAbout.Checked && hide.SetupAbout) isHiddenPage = true;
-        if (ItemFeedback.Checked && hide.SetupFeedback) isHiddenPage = true;
-        if (ItemLog.Checked && hide.SetupLog) isHiddenPage = true;
-        if (PageSetupUI.HiddenForceShow)
-            isHiddenPage = false;
-        // 若页面错误，或尚未加载，则继续
-        if (isLoad && !isHiddenPage)
+        // 设置页已精简为「启动 / Java / 管理 / 个性化」四项且始终可见，这里只负责首次选中第一项
+        if (isLoad || isPageSwitched)
             return;
         isLoad = true;
-        // 刷新子页面隐藏情况
-        PageSetupUI.HiddenRefresh();
-        // 选择第一个未被禁用的子页面
-        if (isPageSwitched)
-            return;
-        var hideCfg = Config.Preference.Hide;
-        if (!hideCfg.SetupLaunch) 
-            ItemLaunch.SetChecked(true, false, false);
-        else if (!hideCfg.SetupJava) 
-            ItemJava.SetChecked(true, false, false);    
-        else if (!hideCfg.SetupGameManage) 
-            ItemGameManage.SetChecked(true, false, false);
-        else if (!hideCfg.SetupUi) 
-            ItemUI.SetChecked(true, false, false);
-        else if (!hideCfg.SetupLauncherLanguage)
-            ItemLauncherLanguage.SetChecked(true, false, false);
-        else if (!hideCfg.SetupLauncherMisc) 
-            ItemLauncherMisc.SetChecked(true, false, false);
-        else if (!hideCfg.SetupAbout) 
-            ItemAbout.SetChecked(true, false, false);   
-        else if (!hideCfg.SetupFeedback) 
-            ItemFeedback.SetChecked(true, false, false);
-        else if (!hideCfg.SetupLog) 
-            ItemLog.SetChecked(true, false, false);
-        else 
-            ItemLaunch.SetChecked(true, false, false);
+        // 选择第一个子页面
+        ItemLaunch.SetChecked(true, false, false);
     }
 
     private void PageOtherLeft_Unloaded(object sender, RoutedEventArgs e)
@@ -105,72 +65,15 @@ public partial class PageSetupLeft
 
                 break;
             }
-            case (double)FormMain.PageSubType.SetupLauncherLanguage:
-            {
-                if (ModMain.MyMsgBox(Lang.Text("Setup.Left.Reset.Language.Message"), Lang.Text("Setup.Left.Reset.Title"), button2: Lang.Text("Common.Action.Cancel"), isWarn: true) == 1)
-                {
-                    if (ModMain.frmSetupLauncherLanguage is null)
-                        ModMain.frmSetupLauncherLanguage = new PageSetupLauncherLanguage();
-                    ModMain.frmSetupLauncherLanguage.Reset();
-                    ItemLauncherLanguage.Checked = true;
-                }
-
-                break;
-            }
-            case (double)FormMain.PageSubType.SetupLauncherMisc:
-            {
-                if (ModMain.MyMsgBox(Lang.Text("Setup.Left.Reset.Misc.Message"), Lang.Text("Setup.Left.Reset.Title"), button2: Lang.Text("Common.Action.Cancel"), isWarn: true) == 1)
-                {
-                    if (ModMain.frmSetupLauncherMisc is null)
-                        ModMain.frmSetupLauncherMisc = new PageSetupLauncherMisc();
-                    ModMain.frmSetupLauncherMisc.Reset();
-                    ItemLauncherMisc.Checked = true;
-                }
-
-                break;
-            }
         }
-    }
-
-    public static void TryFeedback() // Handles ItemFeedback.Click
-    {
-        ModBase.RunInNewThread(() =>
-        {
-            if (!ModBase.CanFeedback(true))
-                return;
-            switch (ModMain.MyMsgBox(Lang.Text("Setup.Left.Feedback.Message"), Lang.Text("Setup.Left.Feedback.Title"),
-                        Lang.Text("Setup.Left.Feedback.SubmitNew"), Lang.Text("Setup.Left.Feedback.ViewList"), Lang.Text("Common.Action.Cancel")))
-            {
-                case 1:
-                {
-                    ModBase.Feedback();
-                    break;
-                }
-                case 2:
-                {
-                    ModBase.OpenWebsite("https://github.com/PCL-Community/PCL2-CE/issues/");
-                    break;
-                }
-            }
-        });
     }
 
     public void Refresh(object sender, EventArgs e) // 由边栏按钮匿名调用
     {
-        switch (ModBase.Val(((MyIconButton)sender).Tag))
+        if (ModBase.Val(((MyIconButton)sender).Tag) == (double)FormMain.PageSubType.SetupJava)
         {
-            case (double)FormMain.PageSubType.SetupFeedback:
-            {
-                if (ModMain.frmSetupFeedback is not null) ModMain.frmSetupFeedback.Loader.Start(isForceRestart: true);
-                ItemFeedback.Checked = true;
-                break;
-            }
-            case (double)FormMain.PageSubType.SetupJava:
-            {
-                if (ModMain.frmSetupJava is not null) ModMain.frmSetupJava.loader.Start(isForceRestart: true);
-                ItemJava.Checked = true;
-                break;
-            }
+            if (ModMain.frmSetupJava is not null) ModMain.frmSetupJava.loader.Start(isForceRestart: true);
+            ItemJava.Checked = true;
         }
 
         HintService.Hint(Lang.Text("Setup.Left.Refreshing"), log: false);
@@ -186,28 +89,7 @@ public partial class PageSetupLeft
     public PageSetupLeft()
     {
         InitializeComponent();
-        // 选择第一个未被禁用的子页面
-        var hideCfg = Config.Preference.Hide;
-        if (!hideCfg.SetupLaunch)
-            pageID = FormMain.PageSubType.SetupLaunch;
-        else if (!hideCfg.SetupJava)
-            pageID = FormMain.PageSubType.SetupJava;
-        else if (!hideCfg.SetupGameManage)
-            pageID = FormMain.PageSubType.SetupGameManage;
-        else if (!hideCfg.SetupUi)
-            pageID = FormMain.PageSubType.SetupUI;
-        else if (!hideCfg.SetupLauncherLanguage)
-            pageID = FormMain.PageSubType.SetupLauncherLanguage;
-        else if (!hideCfg.SetupLauncherMisc)
-            pageID = FormMain.PageSubType.SetupLauncherMisc;
-        else if (!hideCfg.SetupAbout)
-            pageID = FormMain.PageSubType.SetupAbout;        
-        else if (!hideCfg.SetupFeedback)
-            pageID = FormMain.PageSubType.SetupFeedback;
-        else if (!hideCfg.SetupLog)
-            pageID = FormMain.PageSubType.SetupLog;
-        else
-            pageID = FormMain.PageSubType.SetupLaunch;
+        pageID = FormMain.PageSubType.SetupLaunch;
         AnimatedControl = PanItem;
         Loaded += PageSetupLeft_Loaded;
         Unloaded += PageOtherLeft_Unloaded;
@@ -250,36 +132,6 @@ public partial class PageSetupLeft
                 if (ModMain.frmSetupGameManage is null)
                     ModMain.frmSetupGameManage = new PageSetupGameManage();
                 return ModMain.frmSetupGameManage;
-            }
-            case FormMain.PageSubType.SetupAbout:
-            {
-                if (ModMain.frmSetupAbout is null)
-                    ModMain.frmSetupAbout = new PageSetupAbout();
-                return ModMain.frmSetupAbout;
-            }
-            case FormMain.PageSubType.SetupLog:
-            {
-                if (ModMain.frmSetupLog is null)
-                    ModMain.frmSetupLog = new PageSetupLog();
-                return ModMain.frmSetupLog;
-            }
-            case FormMain.PageSubType.SetupFeedback:
-            {
-                if (ModMain.frmSetupFeedback is null)
-                    ModMain.frmSetupFeedback = new PageSetupFeedback();
-                return ModMain.frmSetupFeedback;
-            }
-            case FormMain.PageSubType.SetupLauncherLanguage:
-            {
-                if (ModMain.frmSetupLauncherLanguage is null)
-                    ModMain.frmSetupLauncherLanguage = new PageSetupLauncherLanguage();
-                return ModMain.frmSetupLauncherLanguage;
-            }
-            case FormMain.PageSubType.SetupLauncherMisc:
-            {
-                if (ModMain.frmSetupLauncherMisc is null)
-                    ModMain.frmSetupLauncherMisc = new PageSetupLauncherMisc();
-                return ModMain.frmSetupLauncherMisc;
             }
             case FormMain.PageSubType.SetupJava:
             {

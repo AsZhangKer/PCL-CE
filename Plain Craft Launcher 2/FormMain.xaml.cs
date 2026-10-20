@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.IO;
 using System.Net;
 using System.Runtime.InteropServices;
@@ -125,7 +125,7 @@ public partial class FormMain
         ModBase.frmHandle = new WindowInteropHelper(this).Handle;
         // 读取设置
         PageSetupUI.BackgroundRefresh(false, true);
-        ModMusic.MusicRefreshPlay(false, true);
+        // 背景音乐功能已移除，不再在启动时加载与播放音乐
         // 扩展按钮
         BtnExtraDownload.showCheck = BtnExtraDownload_ShowCheck;
         BtnExtraBack.showCheck = BtnExtraBack_ShowCheck;
@@ -685,17 +685,6 @@ public partial class FormMain
             return;
         }
 
-        // 更改功能隐藏可见性
-        if (e.Key == Key.F12)
-        {
-            PageSetupUI.HiddenForceShow = !PageSetupUI.HiddenForceShow;
-            if (PageSetupUI.HiddenForceShow)
-                HintService.Hint(Lang.Text("Main.HiddenFeature.Disabled"), HintType.Success);
-            else
-                HintService.Hint(Lang.Text("Main.HiddenFeature.Enabled"), HintType.Success);
-            PageSetupUI.HiddenRefresh();
-            return;
-        }
 
         // 按 F5 刷新页面
         if (e.Key == Key.F5)
@@ -1770,13 +1759,6 @@ public partial class FormMain
                             subType = ModMain.frmDownloadLeft.pageID;
                         // PageGet 方法会在未设置 SubType 时指定默认值，并建立相关页面的实例
                         PageChangeAnim(ModMain.frmDownloadLeft, (FrameworkElement)ModMain.frmDownloadLeft.PageGet(subType));
-                        break;
-                    }
-                case PageType.Tools: // 联机
-                    {
-                        ModMain.frmToolsLeft ??= new PageToolsLeft();
-                        subType = ModMain.frmToolsLeft.pageID;
-                        PageChangeAnim(ModMain.frmToolsLeft, (FrameworkElement)ModMain.frmToolsLeft.PageGet(subType));
                         break;
                     }
                 case PageType.Setup: // 设置

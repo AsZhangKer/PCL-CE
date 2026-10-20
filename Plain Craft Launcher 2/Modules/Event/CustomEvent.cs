@@ -185,13 +185,13 @@ namespace PCL
         /// <summary>
         /// 今日人品。
         /// </summary>
-        private static void _DailyFortune(string _, EventType __) => PageToolsTest.Jrrp();
+        private static void _DailyFortune(string _, EventType __) => ModTools.Jrrp();
 
         /// <summary>
         /// 清理垃圾。异步执行 RubbishClear。
         /// </summary>
         private static void _ClearTrash(string _, EventType __) =>
-            ModBase.RunInThread(PageToolsTest.RubbishClear);
+            ModBase.RunInThread(ModTools.RubbishClear);
 
         /// <summary>
         /// 弹出消息框。参数：Title|Content[|ButtonText]。
@@ -268,13 +268,13 @@ namespace PCL
 
             try
             {
-                PageToolsTest.StartCustomDownload(args[0],
+                ModTools.StartCustomDownload(args[0],
                     args.Length >= 2 ? args[1] : ModBase.GetFileNameFromPath(args[0]),
                     args.Length >= 3 ? args[2] : null);
             }
             catch
             {
-                PageToolsTest.StartCustomDownload(args[0], Lang.Text("Common.State.Unknown"));
+                ModTools.StartCustomDownload(args[0], Lang.Text("Common.State.Unknown"));
             }
         }
 

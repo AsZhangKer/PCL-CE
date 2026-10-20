@@ -266,7 +266,6 @@ public static class ModMusic
                         tipText.Contains("\n") ? 10 : 16);
                 }
 
-                ModMain.frmSetupUI?.MusicRefreshUI();
             }
             catch (Exception ex)
             {

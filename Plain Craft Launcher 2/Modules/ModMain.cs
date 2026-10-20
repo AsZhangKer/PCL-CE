@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -33,8 +33,6 @@ public static class ModMain
     public static PageSelectRight? frmSelectRight;
     public static PageSpeedLeft? frmSpeedLeft;
     public static PageSpeedRight? frmSpeedRight;
-    public static PageToolsLeft? frmToolsLeft;
-    public static PageToolsTest? frmToolsTest;
     public static PageDownloadLeft? frmDownloadLeft;
     public static PageDownloadInstall? frmDownloadInstall;
     public static PageDownloadClient? frmDownloadClient;
@@ -58,11 +56,6 @@ public static class ModMain
     public static PageSetupUI? frmSetupUI;
     public static PageSetupGameManage? frmSetupGameManage;
     public static PageSetupJava? frmSetupJava;
-    public static PageSetupAbout? frmSetupAbout;
-    public static PageSetupLog? frmSetupLog;
-    public static PageSetupFeedback? frmSetupFeedback;
-    public static PageSetupLauncherLanguage? frmSetupLauncherLanguage;
-    public static PageSetupLauncherMisc? frmSetupLauncherMisc;
     public static PageLoginAuth? frmLoginAuth;
     public static PageLoginMs? frmLoginMs;
     public static PageLoginProfile? frmLoginProfile;
@@ -978,8 +971,8 @@ public static class ModMain
     }
     
     // 高级
-    text = ModBase.RegexReplaceEach(text, @"\{hint\}", m => replacer(PageToolsTest.GetRandomHint()));
-    text = ModBase.RegexReplaceEach(text, @"\{cave\}", m => replacer(PageToolsTest.GetRandomCave()));
+    text = ModBase.RegexReplaceEach(text, @"\{hint\}", m => replacer(ModTools.GetRandomHint()));
+    text = ModBase.RegexReplaceEach(text, @"\{cave\}", m => replacer(ModTools.GetRandomCave()));
     text = ModBase.RegexReplaceEach(text, @"\{setup:([a-zA-Z0-9]+)\}", m =>
     {
         if (ConfigService.TryGetConfigItemNoType(m.Groups[1].Value, out var item) && item.Source != ConfigSource.SharedEncrypt)

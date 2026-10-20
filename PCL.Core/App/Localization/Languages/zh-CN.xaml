@@ -1,4 +1,4 @@
-<!-- Formatted by xaml-lang-formatter at 2026-06-28T17:16:52. -->
+﻿<!-- Formatted by xaml-lang-formatter at 2026-06-28T17:16:52. -->
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -3416,7 +3416,7 @@
 
     <!-- Tools.Test -->
 
-    <sys:String x:Key="Tools.Test.CeNotice">为便于维护，PCL CE 中不包含百宝箱功能……</sys:String>
+    <sys:String x:Key="Tools.Test.CeNotice">本版本已移除百宝箱页面，相关功能不再提供。</sys:String>
     <sys:String x:Key="Tools.Test.Crash.ManualCrash">手动崩溃</sys:String>
     <sys:String x:Key="Tools.Test.Crash.Title">崩溃测试</sys:String>
     <sys:String x:Key="Tools.Test.Dependency.Checking">开始环境检查……</sys:String>
