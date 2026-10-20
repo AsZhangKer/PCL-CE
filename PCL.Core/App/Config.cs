@@ -532,6 +532,13 @@ public static partial class Config
         /// 正版登录方式。
         /// </summary>
         [ConfigItem<int>("LoginMsAuthType", 1)] public partial int LoginMsAuthType { get; set; }
+
+        /// <summary>
+        /// 正版登录：临时改用旧版 Live 认证流程，借用已通过 Mojang 审核的公共 Client ID。<br/>
+        /// false = 关闭（默认，使用自建 Azure 应用的 v2 设备码流程）；true = 启用。<br/>
+        /// 仅用于自建应用尚未通过 Mojang 白名单审核时的临时过渡，审核通过后应关闭。
+        /// </summary>
+        [ConfigItem<bool>("LoginMsLegacyShell", false, ConfigSource.Local)] public partial bool LoginMsLegacyShell { get; set; }
     }
 
     /// <summary>

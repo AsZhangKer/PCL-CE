@@ -34,6 +34,8 @@
                             <RowDefinition Height="28" />
                             <RowDefinition Height="9" />
                             <RowDefinition Height="28" />
+                            <RowDefinition Height="9" />
+                            <RowDefinition Height="28" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <TextBlock Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Left" Text="{DynamicResource Setup.Launch.Options.InstanceIsolation.Label}"
@@ -160,6 +162,11 @@
                             <local:MyComboBoxItem Content="{DynamicResource Setup.Launch.Options.IpStack.JavaDefault}" />
                             <local:MyComboBoxItem Content="{DynamicResource Setup.Launch.Options.IpStack.Ipv6}" />
                         </local:MyComboBox>
+                        <local:MyCheckBox Grid.Row="16" Grid.ColumnSpan="4" Height="28"
+                                          x:Name="CheckMsLegacyShell" Tag="LoginMsLegacyShell"
+                                          Text="{DynamicResource Setup.Launch.Options.MsAuth.LegacyShell}"
+                                          ToolTip="{DynamicResource Setup.Launch.Options.MsAuth.LegacyShell.ToolTip}"
+                                          Change="CheckBoxChange" />
                     </Grid>
                 </StackPanel>
             </local:MyCard>

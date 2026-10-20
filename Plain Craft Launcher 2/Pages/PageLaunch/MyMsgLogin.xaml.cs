@@ -1,4 +1,4 @@
-﻿using System.Windows.Controls;
+using System.Windows.Controls;
 using System.Windows.Input;
 using PCL.Core.App;
 using PCL.Core.App.Localization;
@@ -76,35 +76,47 @@ public partial class MyMsgLogin
         ModBase.OpenWebsite(website);
         ModBase.ClipboardSet(userCode);
         var delayTime = (data["interval"].ToObject<int>() - 1) * 1000;
+        // 旧版 Live 流程的轮询端点、请求体与 v2 都不同，必须分别构造
+        var isLegacy = Secrets.IsMsLegacyFlow;
+        var clientId = Secrets.MSActiveClientId;
+        var tokenUrl = isLegacy
+            ? $"https://login.live.com/oauth20_token.srf?client_id={clientId}"
+            : "https://login.microsoftonline.com/consumers/oauth2/v2.0/token";
         // 轮询
         var unknownFailureCount = 0;
         while (!myConverter.IsExited)
         {
             try
             {
-                var bodyData = $"grant_type=urn:ietf:params:oauth:grant-type:device_code&client_id={Secrets.MSOAuthClientId}&device_code={deviceCode}&scope=XboxLive.signin%20offline_access";
+                var bodyData = isLegacy
+                    ? $"grant_type=urn:ietf:params:oauth:grant-type:device_code&client_id={clientId}&device_code={deviceCode}"
+                    : $"grant_type=urn:ietf:params:oauth:grant-type:device_code&client_id={clientId}&device_code={deviceCode}&scope=XboxLive.signin%20offline_access";
                 using var result = await HttpRequest
-                    .Create("https://login.microsoftonline.com/consumers/oauth2/v2.0/token")
+                    .Create(tokenUrl)
                     .WithFormContent(bodyData)
                     .SendAsync(enableLogging: false)
                     .ConfigureAwait(false);
                 if (!result.IsSuccess)
                 {
-                    var error = await result.AsJsonAsync<ErrorBody>()
-                        .ConfigureAwait(false);
-                    switch(error?.Error)
+                    ErrorBody? error = null;
+                    try
                     {
-                        case "authorization_pending":
-                            {
-                                await Task.Delay(delayTime)
-                                    .ConfigureAwait(false);
-                                continue;
-                            }
-                        default:
-                            {
-                                throw new Exception(error?.Error ?? "Unable to get body");
-                            }
+                        error = await result.AsJsonAsync<ErrorBody>()
+                            .ConfigureAwait(false);
                     }
+                    catch when (isLegacy)
+                    {
+                        // 旧版端点在等待用户操作时可能返回空响应，不能当作失败
+                    }
+
+                    if (IsPendingError(error?.Error, isLegacy))
+                    {
+                        await Task.Delay(delayTime)
+                            .ConfigureAwait(false);
+                        continue;
+                    }
+
+                    throw new Exception(error?.Error ?? "Unable to get body");
                 }
                 // 获取结果
                 var ctx = await result.AsStringAsync().ConfigureAwait(false);
@@ -132,6 +144,22 @@ public partial class MyMsgLogin
         }
     }
 
+
+    /// <summary>
+    ///     判断轮询返回是否属于「用户尚未完成验证」，属于则继续等待。<br/>
+    ///     旧版 Live 端点在等待期间可能返回空响应或非标准错误，
+    ///     因此除明确的终态错误外一律继续等待。
+    /// </summary>
+    private static bool IsPendingError(string? error, bool isLegacy)
+    {
+        if (string.IsNullOrEmpty(error)) return isLegacy;
+        if (error.Contains("pending", StringComparison.OrdinalIgnoreCase)) return true;
+        if (error.Contains("slow_down", StringComparison.OrdinalIgnoreCase)) return true;
+        if (!isLegacy) return false;
+        return !error.Contains("invalid_grant", StringComparison.OrdinalIgnoreCase)
+               && !error.Contains("expired", StringComparison.OrdinalIgnoreCase)
+               && !error.Contains("declined", StringComparison.OrdinalIgnoreCase);
+    }
 
     #region 弹窗
 

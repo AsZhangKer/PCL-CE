@@ -1,4 +1,4 @@
-﻿<!-- Formatted by xaml-lang-formatter at 2026-06-28T17:16:52. -->
+<!-- Formatted by xaml-lang-formatter at 2026-06-28T17:16:52. -->
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -2239,6 +2239,7 @@
 
     <sys:String x:Key="Minecraft.Launch.Login.Microsoft.AbnormalIp">当前 IP 的登录尝试异常。&#xA;如果你使用了 VPN 或加速器，请把它们关掉或更换节点后再试！</sys:String>
     <sys:String x:Key="Minecraft.Launch.Login.Microsoft.ClientNotRegistered">当前使用的登录 ClientID 未通过 Mojang 的应用审核。&#xA;Mojang 已要求第三方启动器申请白名单后才能访问登录接口，新注册的应用默认不在名单内。&#xA;请到 https://aka.ms/AppRegInfo 提交申请，或在设置中改用已通过审核的 ClientID。</sys:String>
+    <sys:String x:Key="Minecraft.Launch.Login.Microsoft.LegacyShellRejected">借用的公共 ClientID 已被 Mojang 拒绝。&#xA;这说明该 ID 也已失效或被移出白名单，只能改用自己申请的 ClientID。&#xA;请关闭「临时借用公共 ClientID」，并到 https://aka.ms/AppRegInfo 提交申请。</sys:String>
     <sys:String x:Key="Minecraft.Launch.Login.Microsoft.Banned">该账号似乎已被微软封禁，无法登录。</sys:String>
     <sys:String x:Key="Minecraft.Launch.Login.Microsoft.ChangeBirthDate.Message">请在打开的网页中修改账号的出生日期（至少改为 18 岁以上）。&#xA;在修改成功后等待一分钟，然后再回到 PCL CE，就可以正常登录了！</sys:String>
     <sys:String x:Key="Minecraft.Launch.Login.Microsoft.ChangeBirthDate.SupportMessage">请在打开的网页中修改账号的出生日期（至少改为 18 岁以上）。&#xA;在修改成功后等待一分钟，然后再回到 PCL CE，就可以正常登录了！</sys:String>
@@ -2780,6 +2781,8 @@
     <sys:String x:Key="Setup.Launch.Options.MsAuth.Label">正版验证方式</sys:String>
     <sys:String x:Key="Setup.Launch.Options.MsAuth.ToolTip">Web 账户管理器的正版验证流程更为简单，而设备代码流允许你在任意设备上打开网页进行验证。&#xA;如果使用 Web 账户管理器登录遇到问题，可以尝试使用设备代码流。&#xA;如果正在公共计算机上临时登录账号，推荐使用设备代码流。&#xA;&#xA;由于部分依赖组件存在较多问题，该选项暂时强制指定为设备代码流。</sys:String>
     <sys:String x:Key="Setup.Launch.Options.MsAuth.WebManager">Web 账户管理器（暂时强制设备代码流）</sys:String>
+    <sys:String x:Key="Setup.Launch.Options.MsAuth.LegacyShell">临时借用公共 ClientID 登录（绕过 Mojang 白名单审核）</sys:String>
+    <sys:String x:Key="Setup.Launch.Options.MsAuth.LegacyShell.ToolTip">开启后改用旧版 Live 认证流程，并借用 Nintendo Switch 版的公共 ClientID，因此不需要等待 Mojang 白名单审核即可完成正版登录。&#xA;&#xA;注意：&#xA;· 这是借用他人的应用身份，不属于正规做法，被 Mojang 发现后可能导致登录被拒；&#xA;· 该公共 ID 随时可能被 Mojang 收紧，届时会提示「借用的公共 ClientID 已被拒绝」；&#xA;· 启用期间，「个性化」里填写的微软 Client ID 不参与登录，自家应用通过审核后请关闭本项再使用。</sys:String>
     <sys:String x:Key="Setup.Launch.Options.Priority.AboveNormal">高（优先保证游戏运行，游戏性能更佳，但可能造成其他程序卡顿）</sys:String>
     <sys:String x:Key="Setup.Launch.Options.Priority.BelowNormal">低（优先保证其他程序运行，但可能让游戏卡顿，适合挂机时使用）</sys:String>
     <sys:String x:Key="Setup.Launch.Options.Priority.High">极高（谨慎使用，可能严重影响其他程序运行）</sys:String>

@@ -840,9 +840,9 @@ public static class ModLaunch
         string[] tokens;
 
         // ClientID 缺失时在本地立即报错，避免走到微软接口才拿到晦涩的 invalid_client / AADSTS700016
-        if (string.IsNullOrWhiteSpace(Secrets.MSOAuthClientId))
+        if (string.IsNullOrWhiteSpace(Secrets.MSActiveClientId))
             throw new InvalidOperationException(
-                "未配置 Microsoft OAuth ClientID。请在「设置 → 界面 → 微软登录 ClientID」中填写，" +
+                "未配置 Microsoft OAuth ClientID。请在「设置 → 启动 → 正版验证方式」中填写，" +
                 "或设置环境变量 PCL_MS_CLIENT_ID 后重新构建（见 build.ps1 / .env.local）。");
 
         while (true)
@@ -882,36 +882,95 @@ public static class ModLaunch
     }
 
     /// <summary>
+    ///     旧版 Live 认证流程使用的 scope，与 v2 流程不同，必须原样传递。
+    /// </summary>
+    private const string MsLegacyScope = "service::user.auth.xboxlive.com::MBI_SSL";
+
+    /// <summary>
     ///     正版验证步骤 1：通过设备代码流获取账号信息
     /// </summary>
     /// <returns>OAuth 验证完成的返回结果</returns>
     private static string[] MsLoginStep1New(ModLoader.LoaderTask<McLoginMs, McLoginResult> data)
     {
+        // 临时方案：旧版 Live 流程走完全不同的端点与参数，见 MsLoginStep1Legacy
+        if (Secrets.IsMsLegacyFlow)
+            return MsLoginStep1Legacy(data);
+
         // 参考：https://learn.microsoft.com/zh-cn/entra/identity-platform/v2-oauth2-device-code
 
-        // 初始请求
-        Retry: ;
-
-        McLaunchLog("开始正版验证 Step 1/6（原始登录）");
-        JsonObject prepareJson;
-        var parameters = new Dictionary<string, string>
+        while (true)
         {
-            { "client_id", Secrets.MSOAuthClientId },
-            { "tenant", "/consumers" },
-            { "scope", "XboxLive.signin offline_access" }
-        };
+            McLaunchLog("开始正版验证 Step 1/6（原始登录）");
+            JsonObject prepareJson;
+            var parameters = new Dictionary<string, string>
+            {
+                { "client_id", Secrets.MSOAuthClientId },
+                { "tenant", "/consumers" },
+                { "scope", "XboxLive.signin offline_access" }
+            };
 
-        using (var response = HttpRequest
-                   .CreatePost("https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode")
-                   .WithFormContent(parameters)
-                   .SendAsync()
-                   .GetAwaiter()
-                   .GetResult())
-        {
-            response.EnsureSuccessStatusCode();
-            prepareJson = (JsonObject)ModBase.GetJson(response.AsString());
+            using (var response = HttpRequest
+                       .CreatePost("https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode")
+                       .WithFormContent(parameters)
+                       .SendAsync()
+                       .GetAwaiter()
+                       .GetResult())
+            {
+                response.EnsureSuccessStatusCode();
+                prepareJson = (JsonObject)ModBase.GetJson(response.AsString());
+            }
+
+            // 用户选择「重新登录」时返回 null，此时重新申请设备代码
+            var result = ShowMsLoginDialog(prepareJson);
+            if (result is not null)
+                return result;
         }
+    }
 
+    /// <summary>
+    ///     正版验证步骤 1（旧版 Live 设备代码流）。<br/>
+    ///     该流程使用 login.live.com 的旧版端点，Client ID 为已过审的公共标识，
+    ///     不需要 Mojang 白名单，但属于借用他人应用身份，仅供临时自用。
+    /// </summary>
+    /// <returns>OAuth 验证完成的返回结果</returns>
+    private static string[] MsLoginStep1Legacy(ModLoader.LoaderTask<McLoginMs, McLoginResult> data)
+    {
+        while (true)
+        {
+            McLaunchLog("开始正版验证 Step 1/6（旧版 Live 流程，借用公共 Client ID）");
+            JsonObject prepareJson;
+            var parameters = new Dictionary<string, string>
+            {
+                { "scope", MsLegacyScope },
+                { "client_id", Secrets.MSActiveClientId },
+                { "response_type", "device_code" }
+            };
+
+            using (var response = HttpRequest
+                       .CreatePost("https://login.live.com/oauth20_connect.srf")
+                       .WithFormContent(parameters)
+                       .SendAsync()
+                       .GetAwaiter()
+                       .GetResult())
+            {
+                response.EnsureSuccessStatusCode();
+                prepareJson = (JsonObject)ModBase.GetJson(response.AsString());
+            }
+
+            var result = ShowMsLoginDialog(prepareJson);
+            if (result is not null)
+                return result;
+        }
+    }
+
+    /// <summary>
+    ///     显示设备代码登录弹窗，并等待用户在网页上完成验证。<br/>
+    ///     两种认证流程的设备代码响应结构一致，因此弹窗逻辑完全共用。
+    /// </summary>
+    /// <param name="prepareJson">设备代码接口返回的 JSON</param>
+    /// <returns>登录成功时为 {accessToken, refreshToken}；用户选择重新登录时为 null</returns>
+    private static string[] ShowMsLoginDialog(JsonObject prepareJson)
+    {
         McLaunchLog("网页登录地址：" + prepareJson["verification_uri"]);
 
         // 弹窗
@@ -926,12 +985,13 @@ public static class ModLaunch
                     Lang.Text("Minecraft.Launch.Login.PasswordRequired.Message", ModBase.vbLQ, ModBase.vbRQ),
                     Lang.Text("Minecraft.Launch.Login.PasswordRequired.Title"), Lang.Text("Minecraft.Launch.Login.PasswordRequired.Relogin"), Lang.Text("Minecraft.Launch.Login.PasswordRequired.SetPassword"), Lang.Text("Common.Action.Cancel"),
                     button2Action: () => ModBase.OpenWebsite("https://account.live.com/password/Change")) ==
-                1) goto Retry;
+                1)
+                return null;
 
             throw new Exception("$$");
         }
 
-        if (converter.Result is Exception) throw (Exception)converter.Result;
+        if (converter.Result is Exception ex) throw ex;
 
         return (string[])converter.Result;
     }
@@ -949,18 +1009,21 @@ public static class ModLaunch
         string result = null;
         try
         {
+            // 旧版 Live 流程的刷新端点、scope 与 v2 完全不同，必须分别处理
+            var isLegacy = Secrets.IsMsLegacyFlow;
             var parameters = new Dictionary<string, string>
             {
-                { "client_id", Secrets.MSOAuthClientId },
+                { "client_id", Secrets.MSActiveClientId },
                 { "refresh_token", code },
                 { "grant_type", "refresh_token" },
-                { "scope", "XboxLive.signin offline_access" }
+                { "scope", isLegacy ? MsLegacyScope : "XboxLive.signin offline_access" }
             };
 
             using (var response = HttpRequest
-                       // 必须与 device code 流程保持同一 v2 端点：v2 颁发的 refresh_token
-                       // 用旧版 login.live.com/oauth20_token.srf 刷新会返回 invalid_grant
-                       .CreatePost("https://login.microsoftonline.com/consumers/oauth2/v2.0/token")
+                       // 必须与设备代码流程保持同一端点：跨流程混用会返回 invalid_grant
+                       .CreatePost(isLegacy
+                           ? "https://login.live.com/oauth20_token.srf"
+                           : "https://login.microsoftonline.com/consumers/oauth2/v2.0/token")
                        .WithFormContent(parameters)
                        .SendAsync()
                        .GetAwaiter()
@@ -1036,7 +1099,9 @@ public static class ModLaunch
             {
                 AuthMethod = "RPS",
                 SiteName = "user.auth.xboxlive.com",
-                RpsTicket = $"d={accessToken}"
+                // 旧版 Live 流程签发的 MBI_SSL 令牌用作 RpsTicket 时不带 "d=" 前缀；
+                // v2 流程的 OAuth accessToken 则必须加前缀，两者不能互换
+                RpsTicket = Secrets.IsMsLegacyFlow ? accessToken : $"d={accessToken}"
             },
             RelyingParty = "http://auth.xboxlive.com",
             TokenType = "JWT"
@@ -1258,7 +1323,11 @@ public static class ModLaunch
                     // "Invalid app registration"，与 IP 风控完全无关，必须区分提示，
                     // 否则用户会被误导去反复折腾网络和加速器
                     if (result.Contains("Invalid app registration", StringComparison.OrdinalIgnoreCase))
-                        throw new Exception(Lang.Text("Minecraft.Launch.Login.Microsoft.ClientNotRegistered"));
+                        throw new Exception(
+                            Secrets.IsMsLegacyFlow
+                                // 借用壳也被拒，说明该公共 Client ID 已被 Mojang 收紧，只能走自建应用审核
+                                ? Lang.Text("Minecraft.Launch.Login.Microsoft.LegacyShellRejected")
+                                : Lang.Text("Minecraft.Launch.Login.Microsoft.ClientNotRegistered"));
                     throw new Exception(Lang.Text("Minecraft.Launch.Login.Microsoft.AbnormalIp"));
                 }
 

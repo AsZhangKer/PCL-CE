@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -61,6 +61,7 @@ public partial class PageSetupLaunch
             TextArgumentWindowHeight.Text = Config.Launch.GameWindowHeight.ToString();
             ComboMsAuthType.SelectedIndex = Config.Launch.LoginMsAuthType;
             ComboPreferredIpStack.SelectedIndex = (int)Config.Launch.PreferredIpStack;
+            CheckMsLegacyShell.Checked = Config.Launch.LoginMsLegacyShell;
             WindowTypeUIRefresh();
 
             // 游戏内存
