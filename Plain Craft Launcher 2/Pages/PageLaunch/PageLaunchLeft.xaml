@@ -26,22 +26,23 @@
         </Grid.RenderTransform>
         <!-- 实例设置：位于左侧下半部分，仅在存在有效实例时显示 -->
         <local:MyButton Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="5" x:Name="BtnMore" Visibility="Collapsed"
-                        Height="35" Click="BtnMore_Click" Margin="20,0,20,0" TextPadding="36"
+                        Height="32" Width="180" HorizontalAlignment="Center" Click="BtnMore_Click"
+                        Margin="0,0,0,20" ColorType="Highlight"
                         Text="{DynamicResource Launch.Home.InstanceSettings}" />
         <Grid Grid.ColumnSpan="5" Grid.Row="1" Margin="20,0" VerticalAlignment="Center" x:Name="PanLogin" />
-        <Grid Grid.ColumnSpan="5" Grid.Row="0" RenderTransformOrigin="0.5,0.5" Margin="0,0,0,12">
+        <Grid Grid.ColumnSpan="5" Grid.Row="0" RenderTransformOrigin="0.5,0.5" Margin="0,14,0,12">
             <Grid.RenderTransform>
                 <TransformGroup>
                     <ScaleTransform x:Name="AprilScaleTrans" />
                     <TranslateTransform x:Name="AprilPosTrans" />
                 </TransformGroup>
             </Grid.RenderTransform>
-            <local:MyButton x:Name="BtnLaunch" Height="54" Margin="20,0" Text="{DynamicResource Launch.Home.Button.Loading}" ColorType="Highlight"
+            <local:MyButton x:Name="BtnLaunch" Height="52" Margin="20,0" Text="{DynamicResource Launch.Home.Button.Loading}" ColorType="Highlight"
                             Click="BtnLaunch_Click"
                             Padding="30,0,30,15" IsEnabled="False" />
-            <TextBlock x:Name="LabVersion" Text="{DynamicResource Launch.Home.VersionList.Loading}" Margin="35,0,35,10" IsHitTestVisible="False"
+            <TextBlock x:Name="LabVersion" Text="{DynamicResource Launch.Home.VersionList.Loading}" Margin="35,0,35,9" IsHitTestVisible="False"
                        VerticalAlignment="Bottom" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"
-                       FontSize="11" Foreground="{DynamicResource ColorBrushGray3}" RenderTransformOrigin="0.5,-0.2">
+                       FontSize="10.5" Foreground="{DynamicResource ColorBrushGray3}" RenderTransformOrigin="0.5,-0.2">
                 <TextBlock.RenderTransform>
                     <ScaleTransform ScaleX="{Binding RealRenderTransform.ScaleX, ElementName=BtnLaunch, Mode=OneWay}"
                                     ScaleY="{Binding RealRenderTransform.ScaleY, ElementName=BtnLaunch, Mode=OneWay}" />

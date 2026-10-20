@@ -136,7 +136,12 @@ public partial class FormMain
         BtnExtraApril.ShowRefresh();
         // 顶部菜单指示线：首帧按当前页面定位，不播放动画
         Dispatcher.BeginInvoke(DispatcherPriority.Loaded,
-            new Action(() => UpdateTitleSelectIndicator(pageCurrent.page == PageType.Setup ? 1 : 0, false)));
+            new Action(() => UpdateTitleSelectIndicator(pageCurrent.page switch
+            {
+                PageType.Setup => 2,
+                PageType.Download => 1,
+                _ => 0
+            }, false)));
         // 初始化尺寸改变
         if (!Config.Preference.LockWindowSize)
             AddResizer();
@@ -604,18 +609,29 @@ public partial class FormMain
     }
 
     /// <summary>
-    ///     当前标题栏选中的标签：0 = 启动，1 = 设置，-1 = 无对应标签。
+    ///     当前标题栏选中的标签：0 = 启动，1 = 下载，2 = 设置，-1 = 无对应标签。
     /// </summary>
     private int _titleSelectIndex = 0;
 
     /// <summary>
+    ///     取指定标签对应的容器与文字块（用于计算指示线的位置与宽度）。
+    /// </summary>
+    private (FrameworkElement? Tab, FrameworkElement? Label) GetTitleSelectElements(int index) => index switch
+    {
+        0 => (BtnTitleSelectLaunch, LabTitleSelectLaunch),
+        1 => (BtnTitleSelectDownload, LabTitleSelectDownload),
+        2 => (BtnTitleSelectSetup, LabTitleSelectSetup),
+        _ => (null, null)
+    };
+
+    /// <summary>
     ///     把标题栏的白色指示线移动到指定标签下，并播放移动动画。
     /// </summary>
-    /// <param name="index">0 = 启动，1 = 设置，-1 = 隐藏指示线。</param>
+    /// <param name="index">0 = 启动，1 = 下载，2 = 设置，-1 = 隐藏指示线。</param>
     /// <param name="animate">是否播放动画。</param>
     private void UpdateTitleSelectIndicator(int index, bool animate = true)
     {
-        if (ShapeTitleSelectLine is null || BtnTitleSelectLaunch is null || BtnTitleSelectSetup is null) return;
+        if (ShapeTitleSelectLine is null) return;
         _titleSelectIndex = index;
         if (index < 0)
         {
@@ -625,15 +641,19 @@ public partial class FormMain
             return;
         }
 
-        var tab = index == 0 ? (FrameworkElement)BtnTitleSelectLaunch : BtnTitleSelectSetup;
-        if (tab.ActualWidth <= 0) return;
-        // 用坐标变换换算标签位置，避免写死宽度（窗口拉伸时也要贴合）
-        var offsetX = tab.TransformToAncestor(PanTitleSelect).Transform(new Point(0d, 0d)).X;
+        var (tab, label) = GetTitleSelectElements(index);
+        if (tab is null || label is null) return;
+        if (tab.ActualWidth <= 0 || label.ActualWidth <= 0) return;
+        // 指示线只贴在文字下方（两侧各留 12px），而不是铺满整个可点击区域
+        var lineWidth = label.ActualWidth + 24d;
+        var centerX = label.TransformToAncestor(PanTitleSelect)
+            .Transform(new Point(label.ActualWidth / 2d, 0d)).X;
+        var offsetX = centerX - lineWidth / 2d;
         if (!animate)
         {
             ModAnimation.AniStop("FrmMain TitleSelect");
             ShapeTitleSelectLine.BeginAnimation(FrameworkElement.WidthProperty, null);
-            ShapeTitleSelectLine.Width = tab.ActualWidth;
+            ShapeTitleSelectLine.Width = lineWidth;
             ShapeTitleSelectLine.Margin = new Thickness(offsetX, 0, 0, 0);
             ShapeTitleSelectLine.Opacity = 0.95d;
             return;
@@ -644,10 +664,23 @@ public partial class FormMain
             {
                 ModAnimation.AaX(ShapeTitleSelectLine, offsetX - ShapeTitleSelectLine.Margin.Left, 240,
                     ease: new ModAnimation.AniEaseOutFluent(ModAnimation.AniEasePower.Weak)),
-                ModAnimation.AaWidth(ShapeTitleSelectLine, tab.ActualWidth - ShapeTitleSelectLine.Width, 240,
+                ModAnimation.AaWidth(ShapeTitleSelectLine, lineWidth - ShapeTitleSelectLine.Width, 240,
                     ease: new ModAnimation.AniEaseOutFluent(ModAnimation.AniEasePower.Weak)),
                 ModAnimation.AaOpacity(ShapeTitleSelectLine, 0.95d - ShapeTitleSelectLine.Opacity, 140)
             }, "FrmMain TitleSelect");
+    }
+
+    /// <summary>
+    ///     标签页悬停：在主题色背景上叠一层很淡的白色，给点击区域一点反馈。
+    /// </summary>
+    private void BtnTitleSelect_MouseEnter(object sender, MouseEventArgs e)
+    {
+        if (sender is Border border) border.Background = new SolidColorBrush(Color.FromArgb(20, 255, 255, 255));
+    }
+
+    private void BtnTitleSelect_MouseLeave(object sender, MouseEventArgs e)
+    {
+        if (sender is Border border) border.Background = Brushes.Transparent;
     }
 
     #endregion
@@ -1875,11 +1908,12 @@ public partial class FormMain
 
             BtnExtraDownload.ShowRefresh();
             BtnExtraApril.ShowRefresh();
-            // 顶部菜单的指示线跟随当前页面：下载页等没有对应标签的页面则隐藏
+            // 顶部菜单的指示线跟随当前页面：其他页面则隐藏
             UpdateTitleSelectIndicator(stack.page switch
             {
                 PageType.Launch => 0,
-                PageType.Setup => 1,
+                PageType.Download => 1,
+                PageType.Setup => 2,
                 _ => -1
             });
 

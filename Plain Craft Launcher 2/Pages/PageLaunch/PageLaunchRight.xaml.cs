@@ -232,9 +232,10 @@ public partial class PageLaunchRight : IRefreshable
         var btn = new MyIconButton
         {
             SvgIcon = "lucide/settings",
-            Height = 22,
-            Width = 22,
-            LogoScale = 0.9,
+            Height = 24,
+            Width = 24,
+            LogoScale = 0.95,
+            Opacity = 0.75,
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Center
         };
@@ -274,6 +275,7 @@ public partial class PageLaunchRight : IRefreshable
         {
             Title = instance.Name,
             Height = 42,
+            Margin = new Thickness(0, 0, 0, 2),
             Tag = instance,
             Type = _multiSelectMode ? MyListItem.CheckType.CheckBox : MyListItem.CheckType.Clickable,
             Checked = _multiSelectMode && _multiSelected.Contains(instance.PathInstance)
@@ -400,10 +402,7 @@ public partial class PageLaunchRight : IRefreshable
         BuildInstanceListItems();
     }
 
-    private void BtnGoDownload_Click(object sender, MouseButtonEventArgs e) =>
-        ModMain.frmMain.PageChange(FormMain.PageType.Download, FormMain.PageSubType.DownloadInstall);
-
-    private void BtnAddFolder_Click(object sender, MouseButtonEventArgs e) => AddFolderFlow();
+    private void BtnAddFolder_Click(object sender, EventArgs e) => AddFolderFlow();
 
     private void BtnMultiCancel_Click(object sender, MouseButtonEventArgs e) => ExitMultiSelect();
 
