@@ -50,7 +50,6 @@ public partial class PageLaunchLeft
         Loaded += PageLaunchLeft_Loaded;
         WeakLanguageChanged.Add(this, OnLanguageChanged);
         // Handles
-        BtnInstance.Click += BtnInstance_Click;
         BtnLaunch.Click += BtnLaunch_Click;
         BtnLaunch.Loaded += (_, _) => RefreshButtonsUI();
         BtnCancel.Click += BtnCancel_Click;
@@ -197,14 +196,6 @@ public partial class PageLaunchLeft
         ModAnimation.AniControlEnabled -= 1;
     }
 
-    // 实例选择按钮
-    private void BtnInstance_Click(object sender, MouseButtonEventArgs e)
-    {
-        if (ModLaunch.mcLaunchLoader.State == ModBase.LoadState.Loading)
-            return;
-        ModMain.frmMain.PageChange(FormMain.PageType.InstanceSelect);
-    }
-
     // 启动按钮
     public void LaunchButtonClick()
     {
@@ -288,7 +279,6 @@ public partial class PageLaunchLeft
                 ModMain.frmLaunchLeft.BtnLaunch.Text = Lang.Text("Launch.Home.Button.Loading");
                 ModMain.frmLaunchLeft.BtnLaunch.IsEnabled = false;
                 ModMain.frmLaunchLeft.LabVersion.Text = Lang.Text("Launch.Home.Instance.Loading");
-                ModMain.frmLaunchLeft.BtnInstance.IsEnabled = false;
                 ModMain.frmLaunchLeft.BtnMore.Visibility = Visibility.Collapsed;
                 break;
             }
@@ -299,7 +289,6 @@ public partial class PageLaunchLeft
                 ModMain.frmLaunchLeft.BtnLaunch.Text = Lang.Text("Launch.Home.Button.Launch");
                 ModMain.frmLaunchLeft.BtnLaunch.IsEnabled = false;
                 ModMain.frmLaunchLeft.LabVersion.Text = Lang.Text("Launch.Home.Instance.NotFound");
-                ModMain.frmLaunchLeft.BtnInstance.IsEnabled = true;
                 ModMain.frmLaunchLeft.BtnMore.Visibility = Visibility.Collapsed;
                 break;
             }
@@ -310,7 +299,6 @@ public partial class PageLaunchLeft
                 ModMain.frmLaunchLeft.BtnLaunch.Text = Lang.Text("Launch.Home.Button.Download");
                 ModMain.frmLaunchLeft.BtnLaunch.IsEnabled = true;
                 ModMain.frmLaunchLeft.LabVersion.Text = Lang.Text("Launch.Home.Instance.NotFound");
-                ModMain.frmLaunchLeft.BtnInstance.IsEnabled = true;
                 ModMain.frmLaunchLeft.BtnMore.Visibility = Visibility.Collapsed;
                 break;
             }
@@ -319,7 +307,6 @@ public partial class PageLaunchLeft
                 _launchButtonAction = LaunchButtonAction.Launch;
                 ModBase.Log("[Minecraft] 启动按钮：Minecraft 实例：" + ModInstanceList.McMcInstanceSelected.PathInstance);
                 ModMain.frmLaunchLeft.BtnLaunch.Text = Lang.Text("Launch.Home.Button.Launch");
-                ModMain.frmLaunchLeft.BtnInstance.IsEnabled = true;
                 if (ModProfile.selectedProfile is not null)
                     BtnLaunch.IsEnabled = true;
                 else
@@ -332,12 +319,9 @@ public partial class PageLaunchLeft
 
         ExitRefresh: ;
 
-        // 功能隐藏
-        ModMain.frmLaunchLeft.BtnInstance.Visibility =
-            !PageSetupUI.HiddenForceShow && Config.Preference.Hide.FunctionSelect
-                ? Visibility.Collapsed
-                : Visibility.Visible;
-        if (currentState == 3) ModMain.frmLaunchLeft.BtnMore.Visibility = ModMain.frmLaunchLeft.BtnInstance.Visibility;
+        // 实例设置按钮：只有在存在有效实例时才显示
+        ModMain.frmLaunchLeft.BtnMore.Visibility =
+            currentState == 3 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     // 取消按钮

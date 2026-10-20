@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -61,6 +61,9 @@ public partial class PageSetupUI
         InitializeComponent();
         Loaded += PageSetupUI_Loaded;
         Loaded += (_, _) => HiddenRefresh();
+        // 取色器事件在代码里挂接，避免 XAML 中声明自定义事件处理器导致设计器报错
+        PickerCustomColor.ColorChanged += PickerCustomColor_ColorChanged;
+        PickerCustomColor2.ColorChanged += PickerCustomColor2_ColorChanged;
     }
 
     private void PageSetupUI_Loaded(object sender, RoutedEventArgs e)
@@ -92,12 +95,7 @@ public partial class PageSetupUI
             ComboDarkColor.SelectedIndex = (int)Config.Preference.Theme.DarkColor;
             ComboLightColor.SelectedIndex = (int)Config.Preference.Theme.LightColor;
             RefreshThemeColorPreview();
-            if (TextCustomColor is not null)
-            {
-                _isReloadingCustomColor = true;
-                TextCustomColor.Text = Config.Preference.Theme.CustomColor;
-                _isReloadingCustomColor = false;
-            }
+            RefreshCustomColorPickers();
             if (TextMsClientId is not null)
             {
                 _isReloadingMsClientId = true;
@@ -582,11 +580,11 @@ public partial class PageSetupUI
     private void RefreshThemeColorPreview()
     {
         if (BorderLightThemeColor is not null)
-            BorderLightThemeColor.Background = new SolidColorBrush(
-                ThemeService.GetThemePreviewColor(Config.Preference.Theme.LightColor, false));
+            BorderLightThemeColor.Background =
+                ThemeService.GetThemePreviewBrush(Config.Preference.Theme.LightColor, false);
         if (BorderDarkThemeColor is not null)
-            BorderDarkThemeColor.Background = new SolidColorBrush(
-                ThemeService.GetThemePreviewColor(Config.Preference.Theme.DarkColor, true));
+            BorderDarkThemeColor.Background =
+                ThemeService.GetThemePreviewBrush(Config.Preference.Theme.DarkColor, true);
     }
 
     // 自定义主题色输入
@@ -597,30 +595,105 @@ public partial class PageSetupUI
             PanCustomColor.Visibility = isCustom ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    private void CustomColor_TextChanged(object sender, RoutedEventArgs e)
+    private bool _isReloadingCustomColor;
+
+    /// <summary>
+    /// 把配置中的自定义颜色与渐变设置回填到控件。
+    /// </summary>
+    private void RefreshCustomColorPickers()
     {
-        // 防止 Reload() 赋值时触发
-        if (_isReloadingCustomColor)
-            return;
-        var text = TextCustomColor?.Text?.Trim();
-        if (string.IsNullOrWhiteSpace(text))
-            return;
-        if (!text.StartsWith('#'))
-            text = "#" + text;
-        if (text.Length != 7)
-            return;
-        foreach (var c in text.Substring(1))
+        if (PickerCustomColor is null) return;
+        _isReloadingCustomColor = true;
+        try
+        {
+            PickerCustomColor.SetColor(_ParseColor(Config.Preference.Theme.CustomColor, Colors.DeepSkyBlue));
+            PickerCustomColor2.SetColor(_ParseColor(Config.Preference.Theme.CustomColor2, Colors.MediumPurple));
+            CheckGradient.Checked = !string.IsNullOrWhiteSpace(Config.Preference.Theme.CustomColor2);
+            ComboGradientDirection.SelectedIndex = (int)Config.Preference.Theme.GradientDirection;
+            SliderGradientRatio.Value = Config.Preference.Theme.GradientRatio;
+            var gradientEnabled = CheckGradient.Checked == true;
+            ComboGradientDirection.IsEnabled = gradientEnabled;
+            SliderGradientRatio.IsEnabled = gradientEnabled;
+        }
+        finally
+        {
+            _isReloadingCustomColor = false;
+        }
+    }
+
+    /// <summary>
+    /// 解析十六进制颜色，失败时回退到给定颜色。
+    /// </summary>
+    private static Color _ParseColor(string hex, Color fallback)
+    {
+        var text = (hex ?? "").Trim().TrimStart('#');
+        if (text.Length != 6) return fallback;
+        foreach (var c in text)
             if (!Uri.IsHexDigit(c))
-                return;
-        Config.Preference.Theme.CustomColor = text;
-        // 配置变更会通过 OnCustomColorConfigChanged 自动刷新配色资源
+                return fallback;
+        return Color.FromRgb(
+            (byte)Convert.ToInt32(text[..2], 16),
+            (byte)Convert.ToInt32(text.Substring(2, 2), 16),
+            (byte)Convert.ToInt32(text.Substring(4, 2), 16));
+    }
+
+    private static string _ToHex(Color color) => $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+
+    /// <summary>
+    /// 主色取色器改变。
+    /// </summary>
+    private void PickerCustomColor_ColorChanged(object sender, EventArgs e)
+    {
+        if (_isReloadingCustomColor) return;
+        Config.Preference.Theme.CustomColor = _ToHex(PickerCustomColor.Color);
+        _AfterCustomColorChanged();
+    }
+
+    /// <summary>
+    /// 渐变终点色取色器改变。
+    /// </summary>
+    private void PickerCustomColor2_ColorChanged(object sender, EventArgs e)
+    {
+        if (_isReloadingCustomColor) return;
+        // 只有启用渐变时才写入配置，否则保持为空（表示不使用渐变）
+        if (CheckGradient.Checked == true)
+            Config.Preference.Theme.CustomColor2 = _ToHex(PickerCustomColor2.Color);
+        _AfterCustomColorChanged();
+    }
+
+    private void _AfterCustomColorChanged()
+    {
+        // 配置变更事件会自动刷新资源，但仅在当前主题为自定义时；否则手动触发一次
         if (ThemeService.CurrentTheme != ColorTheme.Custom)
             ThemeManager.ThemeRefresh();
-        // 自定义色也是主题的一种，色块预览要跟着更新
         RefreshThemeColorPreview();
     }
 
-    private bool _isReloadingCustomColor;
+    private void Gradient_Change(object sender, bool user)
+    {
+        if (_isReloadingCustomColor) return;
+        var enabled = CheckGradient.Checked == true;
+        ComboGradientDirection.IsEnabled = enabled;
+        SliderGradientRatio.IsEnabled = enabled;
+        Config.Preference.Theme.CustomColor2 = enabled ? _ToHex(PickerCustomColor2.Color) : "";
+        _AfterCustomColorChanged();
+    }
+
+    private void GradientDirection_Change(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isReloadingCustomColor) return;
+        var index = ComboGradientDirection.SelectedIndex;
+        if (index < 0) return;
+        Config.Preference.Theme.GradientDirection = (ThemeGradientDirection)index;
+        _AfterCustomColorChanged();
+    }
+
+    private void GradientRatio_Change(object sender, bool user)
+    {
+        if (_isReloadingCustomColor) return;
+        Config.Preference.Theme.GradientRatio = SliderGradientRatio.Value;
+        _AfterCustomColorChanged();
+    }
 
     // 自定义微软 Client ID 输入
     private bool _isReloadingMsClientId;
@@ -643,6 +716,8 @@ public partial class PageSetupUI
         SliderBackgroundBlur.getHintText = new Func<object, object>(v => Lang.Text("Setup.Ui.Slider.Pixel", Lang.Number(Convert.ToDouble(v), "N0")));
         SliderBlurValue.getHintText = new Func<object, object>(v => Lang.Text("Setup.Ui.Slider.Pixel", Lang.Number(Convert.ToDouble(v), "N0")));
         SliderBlurSamplingRate.getHintText = new Func<object, object>(v => Lang.Number(Convert.ToDouble(v) / 100d, "P0"));
+        // 渐变占比：直接以百分比显示，100% 等于纯色
+        SliderGradientRatio.getHintText = new Func<object, object>(v => Lang.Number(Convert.ToDouble(v), "N0") + "%");
     }
 
     #region 功能隐藏（已移除）

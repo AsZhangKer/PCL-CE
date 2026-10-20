@@ -1,4 +1,4 @@
-﻿<local:MyPageRight
+<local:MyPageRight
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="clr-namespace:PCL"
@@ -64,19 +64,59 @@
                             <local:MyComboBox Grid.Column="5" x:Name="ComboDarkColor" Tag="UiDarkColor" ItemsSource="{Binding ThemeColors}" SelectionChanged="ThemeColor_Change"/>
 
                         </Grid>
-                        <Grid Height="28" Margin="0,0,0,7" x:Name="PanCustomColor" Visibility="Collapsed">
+                        <Grid Margin="0,0,0,10" x:Name="PanCustomColor" Visibility="Collapsed">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" SharedSizeGroup="Name1" />
                                 <ColumnDefinition />
-                                <ColumnDefinition Width="92" SharedSizeGroup="SubName" />
-                                <ColumnDefinition />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Left" Text="{DynamicResource Setup.Ui.Theme.CustomColor}" />
-                            <local:MyTextBox Grid.Column="1" x:Name="TextCustomColor" MaxLines="1" AcceptsReturn="False"
-                                             HintText="{DynamicResource Setup.Ui.Theme.CustomColor.Placeholder}"
-                                             ValidatedTextChanged="CustomColor_TextChanged" />
-                            <TextBlock Grid.Column="3" VerticalAlignment="Center" Foreground="{DynamicResource ColorBrushGray3}"
-                                       Text="{DynamicResource Setup.Ui.Theme.CustomColor.Hint}" FontSize="12" />
+                            <TextBlock Grid.Column="0" VerticalAlignment="Top" Margin="0,6,0,0" HorizontalAlignment="Left"
+                                       Text="{DynamicResource Setup.Ui.Theme.CustomColor}" />
+                            <Grid Grid.Column="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <!-- 左：主色与渐变终点色（上下排列，避免撑破卡片宽度） -->
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="{DynamicResource Setup.Ui.Theme.CustomColor.Main}" FontSize="12"
+                                               Opacity="0.6" Margin="1,0,0,5" />
+                                    <local:MyColorPicker x:Name="PickerCustomColor" />
+                                    <TextBlock Text="{DynamicResource Setup.Ui.Theme.CustomColor.Second}" FontSize="12"
+                                               Opacity="0.6" Margin="1,10,0,5" />
+                                    <local:MyColorPicker x:Name="PickerCustomColor2" />
+                                </StackPanel>
+                                <!-- 右：渐变开关、方向与占比 -->
+                                <StackPanel Grid.Column="1" Margin="20,20,0,0">
+                                    <local:MyCheckBox x:Name="CheckGradient" Height="22"
+                                                      Text="{DynamicResource Setup.Ui.Theme.Gradient.Enable}"
+                                                      Change="Gradient_Change" />
+                                    <Grid Height="28" Margin="0,10,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="118" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{DynamicResource Setup.Ui.Theme.Gradient.Direction}"
+                                                   VerticalAlignment="Center" Margin="0,0,10,0" />
+                                        <local:MyComboBox x:Name="ComboGradientDirection" Grid.Column="1"
+                                                          SelectionChanged="GradientDirection_Change">
+                                            <local:MyComboBoxItem Content="{DynamicResource Setup.Ui.Theme.Gradient.Direction.Horizontal}" />
+                                            <local:MyComboBoxItem Content="{DynamicResource Setup.Ui.Theme.Gradient.Direction.Vertical}" />
+                                            <local:MyComboBoxItem Content="{DynamicResource Setup.Ui.Theme.Gradient.Direction.DiagonalDown}" />
+                                            <local:MyComboBoxItem Content="{DynamicResource Setup.Ui.Theme.Gradient.Direction.DiagonalUp}" />
+                                        </local:MyComboBox>
+                                    </Grid>
+                                    <Grid Height="28" Margin="0,4,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="118" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{DynamicResource Setup.Ui.Theme.Gradient.Ratio}"
+                                                   VerticalAlignment="Center" Margin="0,0,10,0" />
+                                        <local:MySlider x:Name="SliderGradientRatio" Grid.Column="1"
+                                                        MaxValue="100" Change="GradientRatio_Change" />
+                                    </Grid>
+                                </StackPanel>
+                            </Grid>
                         </Grid>
                         <Grid Height="28" Margin="0,0,0,7">
                             <Grid.ColumnDefinitions>

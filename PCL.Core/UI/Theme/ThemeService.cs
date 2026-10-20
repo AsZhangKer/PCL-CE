@@ -1,4 +1,7 @@
 using System;
+using System.Linq;
+using System.Windows;
+using System.Windows.Media;
 using PCL.Core.App;
 using PCL.Core.App.Configuration;
 using PCL.Core.App.IoC;
@@ -57,7 +60,12 @@ public sealed partial class ThemeService
 
     [RegisterConfigEvent]
     public static ConfigEventRegistry OnCustomColorConfigChanged => new(
-        scope: Config.Preference.Theme.CustomColorConfig,
+        scope: [
+            Config.Preference.Theme.CustomColorConfig,
+            Config.Preference.Theme.CustomColor2Config,
+            Config.Preference.Theme.GradientDirectionConfig,
+            Config.Preference.Theme.GradientRatioConfig
+        ],
         trigger: ConfigEvent.Update,
         handler: e =>
         {
@@ -288,19 +296,44 @@ public sealed partial class ThemeService
         LabColor.FromLch(tone.LForeground).ToCatColor("Memory", false),
     ];
 
-    private static CatColorResource[] _CalculateColors(ToneProfile tone, (int hue, double lightAdj, double chromaAdj) args) => [
-        LabColor.FromLch(_AdjustLinear(tone.L1, args.lightAdj * 0.1), _AdjustLinear(tone.C1, args.chromaAdj * 0.25), args.hue).ToCatColor("1"),
-        LabColor.FromLch(_AdjustLinear(tone.L2, args.lightAdj), _AdjustLinear(tone.C2, args.chromaAdj), args.hue).ToCatColor("2"),
-        LabColor.FromLch(_AdjustLinear(tone.L3, args.lightAdj), _AdjustLinear(tone.C3, args.chromaAdj), args.hue).ToCatColor("3"),
-        LabColor.FromLch(_AdjustLinear(tone.L4, args.lightAdj), _AdjustLinear(tone.C4, args.chromaAdj), args.hue).ToCatColor("4"),
-        LabColor.FromLch(_AdjustLinear(tone.L5, args.lightAdj), _AdjustLinear(tone.C5, args.chromaAdj), args.hue).ToCatColor("5"),
-        LabColor.FromLch(_AdjustLinear(tone.L6, args.lightAdj), _AdjustLinear(tone.C6, args.chromaAdj), args.hue).ToCatColor("6"),
-        LabColor.FromLch(_AdjustLinear(tone.L7, args.lightAdj), _AdjustLinear(tone.C7, args.chromaAdj), args.hue).ToCatColor("7"),
-        LabColor.FromLch(_AdjustLinear(tone.L8, args.lightAdj), _AdjustLinear(tone.C8, args.chromaAdj), args.hue).ToCatColor("8"),
-        LabColor.FromLch(_AdjustLinear(tone.L8, args.lightAdj), _AdjustLinear(tone.C8, args.chromaAdj), args.hue, tone.ASemiTransparent).ToCatColor("SemiTransparent", false),
-        LabColor.FromLch(_AdjustLinear(tone.L5, args.lightAdj), _AdjustLinear(tone.C5, args.chromaAdj), args.hue).ToCatColor("Bg0"),
-        LabColor.FromLch(_AdjustLinear(tone.L7, args.lightAdj), _AdjustLinear(tone.C7, args.chromaAdj), args.hue, tone.ASemiWhite).ToCatColor("Bg1"),
-    ];
+    private static CatColorResource[] _CalculateColors(ToneProfile tone, (int hue, double lightAdj, double chromaAdj) args) =>
+        _ColorBases(tone, args)
+            .Select((b, i) => LabColor.FromLch(b.L, b.C, args.hue, b.A).ToCatColor(_colorSuffixes[i], b.ApplyToColor))
+            .ToArray();
+
+    /// <summary>
+    /// 配色资源的后缀顺序，索引与 <see cref="_ColorBases" /> 的返回值一一对应。
+    /// </summary>
+    private static readonly string[] _colorSuffixes =
+        ["1", "2", "3", "4", "5", "6", "7", "8", "SemiTransparent", "Bg0", "Bg1"];
+
+    /// <summary>
+    /// 以 LCH 的 L/C/A 分量描述的各档配色，色相由调用方另行提供。
+    /// 抽出这一层是为了让纯色与渐变共用同一套明度/彩度推导，避免两条路径算出不同的颜色。
+    /// </summary>
+    private static (double L, double C, double A, bool ApplyToColor)[] _ColorBases(
+        ToneProfile tone, (int Hue, double LightAdjust, double ChromaAdjust) args)
+    {
+        // 明度与彩度修正
+        double L(double value) => _AdjustLinear(value, args.LightAdjust);
+        double C(double value) => _AdjustLinear(value, args.ChromaAdjust);
+
+        return
+        [
+            // Color1 的修正系数与其余档位不同，沿用原有实现
+            (_AdjustLinear(tone.L1, args.LightAdjust * 0.1), _AdjustLinear(tone.C1, args.ChromaAdjust * 0.25), 1.0, true),
+            (L(tone.L2), C(tone.C2), 1.0, true),
+            (L(tone.L3), C(tone.C3), 1.0, true),
+            (L(tone.L4), C(tone.C4), 1.0, true),
+            (L(tone.L5), C(tone.C5), 1.0, true),
+            (L(tone.L6), C(tone.C6), 1.0, true),
+            (L(tone.L7), C(tone.C7), 1.0, true),
+            (L(tone.L8), C(tone.C8), 1.0, true),
+            (L(tone.L8), C(tone.C8), tone.ASemiTransparent, false),
+            (L(tone.L5), C(tone.C5), 1.0, true),
+            (L(tone.L7), C(tone.C7), tone.ASemiWhite, false)
+        ];
+    }
 
     private static CatColorResource[] LightGrayCache { get => field ??= _CalculateGrays(ToneProfiles.Light); set; } = null!;
 
@@ -344,7 +377,75 @@ public sealed partial class ThemeService
     /// </summary>
     public static void ApplyColorResources()
     {
-        var colors = _CalculateColors(CurrentTone, GetCurrentThemeArgs());
-        foreach (var c in colors) c.Apply();
+        var tone = CurrentTone;
+        var args = GetCurrentThemeArgs();
+        // 先铺一遍纯色：这样从渐变切回纯色时，上一次残留的渐变笔刷会被正确复位
+        foreach (var c in _CalculateColors(tone, args)) c.Apply();
+        if (!TryGetGradientHue(out var hue2)) return;
+        // 同一档配色分别按两个色相计算，再合成线性渐变覆盖对应的 Brush 资源
+        var bases = _ColorBases(tone, args);
+        var res = Lifecycle.CurrentApplication.Resources;
+        for (var i = 0; i < bases.Length; i++)
+        {
+            var (l, c, a, _) = bases[i];
+            var color1 = LabColor.FromLch(l, c, args.Hue, a).ToWpfColor();
+            var color2 = LabColor.FromLch(l, c, hue2, a).ToWpfColor();
+            res[$"ColorBrush{_colorSuffixes[i]}"] = _CreateGradientBrush(color1, color2);
+        }
+    }
+
+    /// <summary>
+    /// 取渐变终点色对应的色相；返回 false 表示当前未启用渐变。
+    /// </summary>
+    private static bool TryGetGradientHue(out int hue)
+    {
+        hue = 0;
+        if (CurrentTheme != ColorTheme.Custom) return false;
+        if (!TryParseHexColor(Config.Preference.Theme.CustomColor2, out var r, out var g, out var b)) return false;
+        hue = _ParseHueFromRgb(r, g, b);
+        return true;
+    }
+
+    /// <summary>
+    /// 按配置的渐变方向构造线性渐变的起止点。
+    /// </summary>
+    private static (Point Start, Point End) _GetGradientPoints() => Config.Preference.Theme.GradientDirection switch
+    {
+        ThemeGradientDirection.Vertical => (new Point(0.5, 0), new Point(0.5, 1)),
+        ThemeGradientDirection.DiagonalDown => (new Point(0, 0), new Point(1, 1)),
+        ThemeGradientDirection.DiagonalUp => (new Point(0, 1), new Point(1, 0)),
+        _ => (new Point(0, 0.5), new Point(1, 0.5)) // 默认水平
+    };
+
+    /// <summary>
+    /// 构造从 <paramref name="color1" /> 过渡到 <paramref name="color2" /> 的线性渐变笔刷。
+    /// 占比表示主色占据的长度：100% 等同于纯色，0% 时整条都是渐变。
+    /// </summary>
+    private static LinearGradientBrush _CreateGradientBrush(Color color1, Color color2)
+    {
+        var ratio = Math.Clamp(Config.Preference.Theme.GradientRatio, 0, 100) / 100d;
+        var (start, end) = _GetGradientPoints();
+        var brush = new LinearGradientBrush { StartPoint = start, EndPoint = end };
+        brush.GradientStops.Add(new GradientStop(color1, 0));
+        if (ratio > 0 && ratio < 1) brush.GradientStops.Add(new GradientStop(color1, ratio));
+        brush.GradientStops.Add(new GradientStop(color2, 1));
+        brush.Freeze();
+        return brush;
+    }
+
+    /// <summary>
+    /// 获取主题预览用的画刷：自定义主题启用渐变时返回渐变，否则返回对应主色的纯色画刷。
+    /// </summary>
+    public static Brush GetThemePreviewBrush(ColorTheme theme, bool isDark)
+    {
+        var color1 = GetThemePreviewColor(theme, isDark);
+        if (theme != ColorTheme.Custom || !TryGetGradientHue(out var hue2))
+            return new SolidColorBrush(color1);
+        var tone = isDark ? ToneProfiles.Dark : ToneProfiles.Light;
+        var args = GetThemeArgs(theme);
+        var color2 = LabColor
+            .FromLch(_AdjustLinear(tone.L2, args.LightAdjust), _AdjustLinear(tone.C2, args.ChromaAdjust), hue2)
+            .ToWpfColor();
+        return _CreateGradientBrush(color1, color2);
     }
 }

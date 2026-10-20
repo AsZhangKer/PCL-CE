@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
@@ -473,9 +473,6 @@ public class ModSetup
         {
             case 0: // 无
             {
-                ModMain.frmMain.ShapeTitleLogo.Visibility = Visibility.Collapsed;
-                ModMain.frmMain.BtnTitleHelp.Visibility = Visibility.Collapsed;
-                ModMain.frmMain.ShapeHMCLTitleLogo.Visibility = Visibility.Collapsed;
                 ModMain.frmMain.LabTitleLogo.Visibility = Visibility.Collapsed;
                 ModMain.frmMain.ImageTitleLogo.Visibility = Visibility.Collapsed;
                 ModMain.frmMain.CELogo.Visibility = Visibility.Collapsed;
@@ -490,9 +487,6 @@ public class ModSetup
             }
             case 1: // 默认
             {
-                ModMain.frmMain.ShapeTitleLogo.Visibility = Visibility.Visible;
-                ModMain.frmMain.BtnTitleHelp.Visibility = Visibility.Collapsed;
-                ModMain.frmMain.ShapeHMCLTitleLogo.Visibility = Visibility.Collapsed;
                 ModMain.frmMain.LabTitleLogo.Visibility = Visibility.Collapsed;
                 ModMain.frmMain.ImageTitleLogo.Visibility = Visibility.Collapsed;
                 ModMain.frmMain.CELogo.Visibility = Visibility.Visible;
@@ -507,9 +501,6 @@ public class ModSetup
             }
             case 2: // 文本
             {
-                ModMain.frmMain.ShapeTitleLogo.Visibility = Visibility.Collapsed;
-                ModMain.frmMain.BtnTitleHelp.Visibility = Visibility.Collapsed;
-                ModMain.frmMain.ShapeHMCLTitleLogo.Visibility = Visibility.Collapsed;
                 ModMain.frmMain.LabTitleLogo.Visibility = Visibility.Visible;
                 ModMain.frmMain.ImageTitleLogo.Visibility = Visibility.Collapsed;
                 ModMain.frmMain.CELogo.Visibility = Visibility.Visible;
@@ -525,9 +516,6 @@ public class ModSetup
             }
             case 3: // 图片
             {
-                ModMain.frmMain.ShapeTitleLogo.Visibility = Visibility.Collapsed;
-                ModMain.frmMain.BtnTitleHelp.Visibility = Visibility.Collapsed;
-                ModMain.frmMain.ShapeHMCLTitleLogo.Visibility = Visibility.Collapsed;
                 ModMain.frmMain.LabTitleLogo.Visibility = Visibility.Collapsed;
                 ModMain.frmMain.ImageTitleLogo.Visibility = Visibility.Visible;
                 ModMain.frmMain.CELogo.Visibility = Visibility.Visible;
@@ -554,12 +542,9 @@ public class ModSetup
 
                 break;
             }
-            case 4: //HMCL (愚人节)
-                ModMain.frmMain.ShapeTitleLogo.Visibility = Visibility.Collapsed;
-                ModMain.frmMain.ShapeHMCLTitleLogo.Visibility = Visibility.Visible;
+            case 4: // 原 HMCL 愚人节样式：标题栏只保留 Ker 徽标，与默认样式一致
                 ModMain.frmMain.LabTitleLogo.Visibility = Visibility.Collapsed;
                 ModMain.frmMain.ImageTitleLogo.Visibility = Visibility.Collapsed;
-                ModMain.frmMain.BtnTitleHelp.Visibility = Visibility.Visible;
                 if (ModMain.frmSetupUI is not null) 
                 {
                     ModMain.frmSetupUI.CheckLogoLeft.Visibility = Visibility.Collapsed;
@@ -582,9 +567,9 @@ public class ModSetup
 
     public static void UiLogoLeft(bool value)
     {
-        ModMain.frmMain.PanTitleMain.ColumnDefinitions[0].Width = new GridLength(
-            value && Config.Preference.WindowTitleType == LauncherTitleType.None ? 0 : 1,
-            GridUnitType.Star);
+        // 左上角 Logo 区域：原实现是把第一列的星号宽度设为 0，现改为直接控制可见性
+        var collapsed = value && Config.Preference.WindowTitleType == LauncherTitleType.None;
+        ModMain.frmMain.PanTitleLeft.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
     }
 
     #endregion

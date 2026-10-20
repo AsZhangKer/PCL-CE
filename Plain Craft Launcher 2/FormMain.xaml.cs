@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.IO;
 using System.Net;
 using System.Runtime.InteropServices;
@@ -8,6 +8,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
+using System.Windows.Threading;
 using PCL.Core.App;
 using PCL.Core.App.IoC;
 using PCL.Core.App.Localization;
@@ -133,15 +134,14 @@ public partial class FormMain
         BtnExtraShutdown.showCheck = BtnExtraShutdown_ShowCheck;
         BtnExtraLog.showCheck = BtnExtraLog_ShowCheck;
         BtnExtraApril.ShowRefresh();
+        // 顶部菜单指示线：首帧按当前页面定位，不播放动画
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded,
+            new Action(() => UpdateTitleSelectIndicator(pageCurrent.page == PageType.Setup ? 1 : 0, false)));
         // 初始化尺寸改变
         if (!Config.Preference.LockWindowSize)
             AddResizer();
         else
             RemoveResizer();
-        // PLC 彩蛋
-        if (RandomUtils.NextInt(1, 1000) == 233)
-            ShapeTitleLogo.Data = (Geometry)new GeometryConverter().ConvertFromString(
-                "M26,29 v-25 h6 a7,7 180 0 1 0,14 h-6 M83,6.5 a10,11.5 180 1 0 0,18 M48,2.5 v24.5 h13.5");
         // 加载窗口
 
         ThemeManager.ThemeRefresh();
@@ -578,19 +578,23 @@ public partial class FormMain
 
             VideoBack.Width = formWidth;
             VideoBack.Height = formHeight;
+
+            // 启动页：左侧游戏控制区与右侧实例区各占一半
+            if (pageCurrent.page == PageType.Launch && ModMain.frmLaunchLeft is not null)
+                ModMain.frmLaunchLeft.Width = Math.Max(320d, PanMain.ActualWidth / 2d);
         }
 
         if (WindowState == WindowState.Maximized)
             WindowState = WindowState.Normal; // 修复 #1938
     }
 
-    // 标题栏改变大小
+    // 标题栏尺寸改变：限制左侧 Logo 区域的最大宽度，避免自定义长文本把标签挤没
     private void PanTitle_SizeChanged(object sender, EventArgs e)
     {
-        if (PanTitleMain.ColumnDefinitions[0].ActualWidth - 30 <= 0)
-            PanTitleLeft.ColumnDefinitions[0].MaxWidth = 0;
-        else
-            PanTitleLeft.ColumnDefinitions[0].MaxWidth = PanTitleMain.ColumnDefinitions[0].ActualWidth - 30;
+        if (PanTitleLeft is null) return;
+        PanTitleLeft.MaxWidth = Math.Max(0d, PanTitle.ActualWidth * 0.4d);
+        // 布局变化后指示线需要重新贴合当前标签
+        UpdateTitleSelectIndicator(_titleSelectIndex, false);
     }
 
     // 最小化
@@ -599,9 +603,51 @@ public partial class FormMain
         WindowState = WindowState.Minimized;
     }
 
-    private void BtnTitleHelp_Click(object sender, EventArgs e)
+    /// <summary>
+    ///     当前标题栏选中的标签：0 = 启动，1 = 设置，-1 = 无对应标签。
+    /// </summary>
+    private int _titleSelectIndex = 0;
+
+    /// <summary>
+    ///     把标题栏的白色指示线移动到指定标签下，并播放移动动画。
+    /// </summary>
+    /// <param name="index">0 = 启动，1 = 设置，-1 = 隐藏指示线。</param>
+    /// <param name="animate">是否播放动画。</param>
+    private void UpdateTitleSelectIndicator(int index, bool animate = true)
     {
-        ModBase.OpenWebsite("https://www.bilibili.com/video/BV1uT4y1P7CX");
+        if (ShapeTitleSelectLine is null || BtnTitleSelectLaunch is null || BtnTitleSelectSetup is null) return;
+        _titleSelectIndex = index;
+        if (index < 0)
+        {
+            ModAnimation.AniStart(
+                new[] { ModAnimation.AaOpacity(ShapeTitleSelectLine, -ShapeTitleSelectLine.Opacity, 120) },
+                "FrmMain TitleSelect");
+            return;
+        }
+
+        var tab = index == 0 ? (FrameworkElement)BtnTitleSelectLaunch : BtnTitleSelectSetup;
+        if (tab.ActualWidth <= 0) return;
+        // 用坐标变换换算标签位置，避免写死宽度（窗口拉伸时也要贴合）
+        var offsetX = tab.TransformToAncestor(PanTitleSelect).Transform(new Point(0d, 0d)).X;
+        if (!animate)
+        {
+            ModAnimation.AniStop("FrmMain TitleSelect");
+            ShapeTitleSelectLine.BeginAnimation(FrameworkElement.WidthProperty, null);
+            ShapeTitleSelectLine.Width = tab.ActualWidth;
+            ShapeTitleSelectLine.Margin = new Thickness(offsetX, 0, 0, 0);
+            ShapeTitleSelectLine.Opacity = 0.95d;
+            return;
+        }
+
+        ModAnimation.AniStart(
+            new[]
+            {
+                ModAnimation.AaX(ShapeTitleSelectLine, offsetX - ShapeTitleSelectLine.Margin.Left, 240,
+                    ease: new ModAnimation.AniEaseOutFluent(ModAnimation.AniEasePower.Weak)),
+                ModAnimation.AaWidth(ShapeTitleSelectLine, tab.ActualWidth - ShapeTitleSelectLine.Width, 240,
+                    ease: new ModAnimation.AniEaseOutFluent(ModAnimation.AniEasePower.Weak)),
+                ModAnimation.AaOpacity(ShapeTitleSelectLine, 0.95d - ShapeTitleSelectLine.Opacity, 140)
+            }, "FrmMain TitleSelect");
     }
 
     #endregion
@@ -1575,8 +1621,6 @@ public partial class FormMain
             // 切换到主页面
             PageChangeExit();
             isChangingPage = true; // 防止下面的勾选直接触发了 PageChangeActual
-            ((MyRadioButton)PanTitleSelect.Children[(int)stack.page]).SetChecked(true, true,
-                string.IsNullOrEmpty(PageNameGet(pageCurrent)));
             isChangingPage = false;
             switch (stack.page)
             {
@@ -1652,15 +1696,17 @@ public partial class FormMain
     }
 
     /// <summary>
-    ///     通过点击导航栏改变页面。
+    ///     通过点击顶部菜单改变页面。
     /// </summary>
-    private void BtnTitleSelect_Click(MyRadioButton sender, bool raiseByMouse)
+    private void BtnTitleSelect_Click(object sender, MouseButtonEventArgs e)
     {
         if (isChangingPage)
             return;
-        var pageType = (PageType)int.Parse(sender.Tag.ToString());
+        if (sender is not FrameworkElement element || element.Tag is null)
+            return;
+        var pageType = (PageType)int.Parse(element.Tag.ToString()!);
         PageChangeActual(pageType, PageSubType.Default);
-        }
+    }
 
     private void BtnTitleInner_Click(object sender, EventArgs e)
     {
@@ -1747,6 +1793,8 @@ public partial class FormMain
             {
                 case PageType.Launch: // 启动
                     {
+                        // 进入启动页时按窗口宽度重新计算左栏宽度（左右各占一半）
+                        ModMain.frmLaunchLeft.Width = Math.Max(320d, PanMain.ActualWidth / 2d);
                         PageChangeAnim(ModMain.frmLaunchLeft, ModMain.frmLaunchRight);
                         break;
                     }
@@ -1827,6 +1875,13 @@ public partial class FormMain
 
             BtnExtraDownload.ShowRefresh();
             BtnExtraApril.ShowRefresh();
+            // 顶部菜单的指示线跟随当前页面：下载页等没有对应标签的页面则隐藏
+            UpdateTitleSelectIndicator(stack.page switch
+            {
+                PageType.Launch => 0,
+                PageType.Setup => 1,
+                _ => -1
+            });
 
             #endregion
 

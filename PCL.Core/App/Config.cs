@@ -210,6 +210,22 @@ public static partial class Config
             [ConfigItem<string>("UiCustomThemeColor", "#00BFFF", ConfigSource.Local)] public partial string CustomColor { get; set; }
 
             /// <summary>
+            /// 自定义主题渐变终点色（十六进制）。为空表示不使用渐变，材质回退为纯色。
+            /// </summary>
+            [ConfigItem<string>("UiCustomThemeColor2", "", ConfigSource.Local)] public partial string CustomColor2 { get; set; }
+
+            /// <summary>
+            /// 自定义主题渐变的颜色过渡方向。
+            /// </summary>
+            [ConfigItem<ThemeGradientDirection>("UiCustomGradientDirection", ThemeGradientDirection.Horizontal, ConfigSource.Local)]
+            public partial ThemeGradientDirection GradientDirection { get; set; }
+
+            /// <summary>
+            /// 渐变中主色所占的比例 (0-100)，其余部分过渡到第二颜色。
+            /// </summary>
+            [ConfigItem<int>("UiCustomGradientRatio", 60, ConfigSource.Local)] public partial int GradientRatio { get; set; }
+
+            /// <summary>
             /// 自定义微软 OAuth Client ID（可为空；非空时优先于编译注入值，用于已获 Minecraft API 权限的客户端）。
             /// </summary>
             [ConfigItem<string>("UiMsClientId", "", ConfigSource.Local)] public partial string MsClientId { get; set; }

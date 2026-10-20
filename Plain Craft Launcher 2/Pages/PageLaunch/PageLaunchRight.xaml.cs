@@ -3,11 +3,13 @@ using System.Globalization;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using PCL.Core.App;
 using PCL.Core.Logging;
 using PCL.Core.UI;
+using PCL.Core.Utils.Validate;
 using PCL.Network;
 using PCL.Core.App.Localization;
 
@@ -51,24 +53,43 @@ public partial class PageLaunchRight : IRefreshable
         });
     }
 
+    #region 主页实例列表（按文件夹分组）
+
+    private object _lastInstanceListSource;
+    private bool _instanceListBuilding;
+    private int _lastFolderCount = -1;
+
+    /// <summary>多选模式下已选中的实例路径（忽略大小写）。</summary>
+    private readonly HashSet<string> _multiSelected = new(StringComparer.OrdinalIgnoreCase);
+
+    private bool _multiSelectMode;
+
+    /// <summary>进入多选的时刻，用于吞掉长按松手时触发的那一次勾选。</summary>
+    private DateTime _multiSelectEnteredAt = DateTime.MinValue;
+
     private void UpdateInstanceListUI()
     {
         try
         {
-            var selectedPath = ModInstanceList.McMcInstanceSelected?.PathInstance;
+            var selectedPath = ModInstanceList.McMcInstanceSelected?.PathInstance ?? "";
             if (StackInstanceList.Children.Count == 0 ||
-                _lastInstanceListSource != ModInstanceList.mcInstanceList)
+                !ReferenceEquals(_lastInstanceListSource, ModInstanceList.mcInstanceList) ||
+                _lastFolderCount != ModFolder.mcFolderList.Count)
             {
                 BuildInstanceListItems();
+                return;
             }
-            // 更新选中状态（不重建控件，避免卡死）
-            foreach (var child in StackInstanceList.Children.OfType<MyListItem>())
+
+            // 只更新勾选状态，不重建控件
+            foreach (var item in StackInstanceList.Children.OfType<MyListItem>())
             {
-                var instance = (McInstance)child.Tag;
-                var isSelected = instance is not null && (instance.PathInstance ?? "") == (selectedPath ?? "");
-                child.SetChecked(isSelected, false, false);
+                if (item.Tag is not McInstance instance) continue;
+                var shouldCheck = _multiSelectMode
+                    ? _multiSelected.Contains(instance.PathInstance)
+                    : (instance.PathInstance ?? "") == selectedPath;
+                if (item.Checked != shouldCheck)
+                    item.SetChecked(shouldCheck, false, false);
             }
-            PanInstanceListCard.Visibility = StackInstanceList.Children.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         }
         catch (Exception ex)
         {
@@ -76,51 +97,391 @@ public partial class PageLaunchRight : IRefreshable
         }
     }
 
-    private object _lastInstanceListSource;
-    private bool _instanceListBuilding;
-
+    /// <summary>
+    ///     重建实例列表：按 Minecraft 文件夹分组，每个实例占一行。
+    /// </summary>
     private void BuildInstanceListItems()
     {
-        if (_instanceListBuilding)
-            return;
+        if (_instanceListBuilding) return;
         _instanceListBuilding = true;
         try
         {
             StackInstanceList.Children.Clear();
             _lastInstanceListSource = ModInstanceList.mcInstanceList;
-            foreach (var pair in ModInstanceList.mcInstanceList)
+            _lastFolderCount = ModFolder.mcFolderList.Count;
+
+            var keyword = (TextSearchInstance?.Text ?? "").Trim();
+            var total = 0;
+            foreach (var folder in ModFolder.mcFolderList.ToList())
             {
-                foreach (var instance in pair.Value)
+                var instances = _GetInstances(folder);
+                if (keyword.Length > 0)
+                    instances = instances
+                        .Where(i => (i.Name ?? "").Contains(keyword, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+                // 搜索时隐藏没有命中项的文件夹，减少干扰
+                if (keyword.Length > 0 && instances.Count == 0) continue;
+
+                StackInstanceList.Children.Add(_CreateFolderHeader(folder, instances.Count));
+                foreach (var instance in instances)
                 {
-                    var item = new MyListItem
-                    {
-                        Title = instance.Name,
-                        Info = instance.GetDefaultDescription(),
-                        Height = 42,
-                        Tag = instance,
-                        Type = MyListItem.CheckType.Clickable
-                    };
-                    try
-                    {
-                        if (instance.Logo.EndsWith(@"PCL\Logo.png"))
-                            item.Logo = instance.PathInstance + @"PCL\Logo.png";
-                        else
-                            item.Logo = instance.Logo;
-                    }
-                    catch
-                    {
-                        item.Logo = "pack://application:,,,/images/Blocks/RedstoneBlock.png";
-                    }
-                    var clickedInstance = instance;
-                    item.Click += (_, _) => SwitchInstance(clickedInstance);
-                    StackInstanceList.Children.Add(item);
+                    StackInstanceList.Children.Add(_CreateInstanceItem(instance));
+                    total++;
                 }
             }
+
+            LabInstanceEmpty.Visibility = total == 0 ? Visibility.Visible : Visibility.Collapsed;
+            PanMultiSelect.Visibility = _multiSelectMode ? Visibility.Visible : Visibility.Collapsed;
+            RefreshMultiSelectBar();
+        }
+        catch (Exception ex)
+        {
+            ModBase.Log(ex, "构建主页实例列表失败");
         }
         finally
         {
             _instanceListBuilding = false;
         }
+    }
+
+    /// <summary>
+    ///     取某个 Minecraft 文件夹下的实例。当前文件夹复用已加载的列表，其余文件夹现场扫描。
+    /// </summary>
+    private List<McInstance> _GetInstances(ModFolder.McFolder folder)
+    {
+        var result = new List<McInstance>();
+        try
+        {
+            if (IsCurrentFolder(folder) && ModInstanceList.mcInstanceList.Count > 0)
+            {
+                foreach (var pair in ModInstanceList.mcInstanceList)
+                    result.AddRange(pair.Value);
+                return result;
+            }
+
+            var versions = Path.Combine(folder.Location, "versions");
+            if (!Directory.Exists(versions)) return result;
+            foreach (var dir in new DirectoryInfo(versions).GetDirectories())
+            {
+                // 与 PCL 的实例判定保持一致：目录中需存在同名 JSON
+                if (!File.Exists(Path.Combine(dir.FullName, dir.Name + ".json"))) continue;
+                var instance = new McInstance(dir.FullName + "\\");
+                try
+                {
+                    instance.Load();
+                }
+                catch (Exception ex)
+                {
+                    ModBase.Log(ex, $"读取实例信息失败：{dir.Name}", ModBase.LogLevel.Developer);
+                }
+
+                result.Add(instance);
+            }
+
+            result.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
+        }
+        catch (Exception ex)
+        {
+            ModBase.Log(ex, $"扫描实例失败：{folder.Location}");
+        }
+
+        return result;
+    }
+
+    private static bool IsCurrentFolder(ModFolder.McFolder folder) =>
+        !string.IsNullOrEmpty(ModFolder.mcFolderSelected) &&
+        string.Equals(folder.Location.TrimEnd('\\'), ModFolder.mcFolderSelected.TrimEnd('\\'),
+            StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    ///     文件夹分组标题行：名称、数量、当前标记，以及右侧的文件夹操作按钮。
+    /// </summary>
+    private FrameworkElement _CreateFolderHeader(ModFolder.McFolder folder, int count)
+    {
+        var grid = new Grid { Margin = new Thickness(1, 8, 1, 4) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var panel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center
+        };
+        panel.Children.Add(new TextBlock
+        {
+            Text = folder.Name, FontSize = 12.5, Opacity = 0.65, VerticalAlignment = VerticalAlignment.Center
+        });
+        panel.Children.Add(new TextBlock
+        {
+            Text = Lang.Text("Launch.Home.Folder.Count", Lang.Number(count, "N0")),
+            FontSize = 12,
+            Opacity = 0.4,
+            Margin = new Thickness(6, 0, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        if (IsCurrentFolder(folder))
+            panel.Children.Add(new TextBlock
+            {
+                Text = Lang.Text("Launch.Home.Folder.Current"),
+                FontSize = 11,
+                Opacity = 0.55,
+                Margin = new Thickness(6, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            });
+        grid.Children.Add(panel);
+
+        var btn = new MyIconButton
+        {
+            SvgIcon = "lucide/settings",
+            Height = 22,
+            Width = 22,
+            LogoScale = 0.9,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(btn, 1);
+        btn.Click += (_, _) => OpenFolderMenu(folder, btn);
+        grid.Children.Add(btn);
+        return grid;
+    }
+
+    /// <summary>
+    ///     文件夹操作菜单：打开、设为当前、添加文件夹、从列表中移除。
+    /// </summary>
+    private void OpenFolderMenu(ModFolder.McFolder folder, FrameworkElement target)
+    {
+        var menu = new ContextMenu();
+
+        void AddItem(string header, string icon, RoutedEventHandler handler)
+        {
+            var item = new MyMenuItem { Header = header, SvgIcon = icon, Padding = new Thickness(0) };
+            item.Click += handler;
+            menu.Items.Add(item);
+        }
+
+        AddItem(Lang.Text("Common.Action.Open"), "lucide/folder-open", (_, _) => ModBase.OpenExplorer(folder.Location));
+        AddItem(Lang.Text("Launch.Home.Folder.SetCurrent"), "lucide/circle-check", (_, _) => SwitchFolder(folder));
+        AddItem(Lang.Text("Launch.Home.Folder.Add"), "lucide/folder-plus", (_, _) => AddFolderFlow());
+        if (ModFolder.mcFolderList.Count > 1)
+            AddItem(Lang.Text("Launch.Home.Folder.Remove"), "lucide/list-x", (_, _) => RemoveFolder(folder));
+
+        menu.PlacementTarget = target;
+        menu.IsOpen = true;
+    }
+
+    private MyListItem _CreateInstanceItem(McInstance instance)
+    {
+        var item = new MyListItem
+        {
+            Title = instance.Name,
+            Height = 42,
+            Tag = instance,
+            Type = _multiSelectMode ? MyListItem.CheckType.CheckBox : MyListItem.CheckType.Clickable,
+            Checked = _multiSelectMode && _multiSelected.Contains(instance.PathInstance)
+        };
+
+        try
+        {
+            item.Info = instance.GetDefaultDescription();
+        }
+        catch
+        {
+            item.Info = "";
+        }
+
+        try
+        {
+            item.Logo = instance.Logo.EndsWith(@"PCL\Logo.png")
+                ? instance.PathInstance + @"PCL\Logo.png"
+                : instance.Logo;
+        }
+        catch
+        {
+            item.Logo = "pack://application:,,,/images/Blocks/RedstoneBlock.png";
+        }
+
+        // 左键：选中实例（多选模式下勾选状态由控件自身维护）
+        item.Click += (_, _) =>
+        {
+            if (_multiSelectMode) return;
+            SwitchInstance(instance);
+        };
+        // 多选模式下同步勾选集合
+        item.Changed += (_, e) =>
+        {
+            if (!_multiSelectMode || !e.raiseByMouse) return;
+            // 刚进入多选的那一次勾选由 EnterMultiSelect 处理，这里跳过避免相互抵消
+            if ((DateTime.Now - _multiSelectEnteredAt).TotalMilliseconds < 400) return;
+            if (item.Checked) _multiSelected.Add(instance.PathInstance);
+            else _multiSelected.Remove(instance.PathInstance);
+            RefreshMultiSelectBar();
+        };
+        // 右键：实例操作（编辑等）
+        item.ContextMenu = _CreateInstanceMenu(instance);
+        _AttachLongPress(item, instance);
+        return item;
+    }
+
+    private ContextMenu _CreateInstanceMenu(McInstance instance)
+    {
+        var menu = new ContextMenu();
+
+        void AddItem(string header, string icon, RoutedEventHandler handler)
+        {
+            var item = new MyMenuItem { Header = header, SvgIcon = icon, Padding = new Thickness(0) };
+            item.Click += handler;
+            menu.Items.Add(item);
+        }
+
+        AddItem(Lang.Text("Launch.Home.Instance.Settings"), "lucide/settings", (_, _) => EditInstance(instance));
+        AddItem(Lang.Text("Common.Action.Open"), "lucide/folder-open",
+            (_, _) => PageInstanceOverall.OpenVersionFolder(instance));
+        AddItem(Lang.Text("Launch.Home.Instance.Delete"), "lucide/trash-2",
+            (_, _) => DeleteInstances([instance]));
+        return menu;
+    }
+
+    /// <summary>
+    ///     长按 450ms 进入多选模式；按下后移动超过阈值则视为拖动并取消。
+    /// </summary>
+    private void _AttachLongPress(MyListItem item, McInstance instance)
+    {
+        DispatcherTimer? timer = null;
+        var start = new Point();
+        item.PreviewMouseLeftButtonDown += (_, e) =>
+        {
+            start = e.GetPosition(item);
+            timer?.Stop();
+            timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(450) };
+            timer.Tick += (_, _) =>
+            {
+                timer?.Stop();
+                EnterMultiSelect(instance);
+            };
+            timer.Start();
+        };
+        item.PreviewMouseMove += (_, e) =>
+        {
+            if (timer is null || !timer.IsEnabled) return;
+            var pos = e.GetPosition(item);
+            if (Math.Abs(pos.X - start.X) > 8d || Math.Abs(pos.Y - start.Y) > 8d) timer.Stop();
+        };
+        item.PreviewMouseLeftButtonUp += (_, _) => timer?.Stop();
+    }
+
+    private void EnterMultiSelect(McInstance instance)
+    {
+        _multiSelectEnteredAt = DateTime.Now;
+        _multiSelectMode = true;
+        _multiSelected.Clear();
+        _multiSelected.Add(instance.PathInstance);
+        PanMultiSelect.Visibility = Visibility.Visible;
+        BuildInstanceListItems();
+        RefreshMultiSelectBar();
+        HintService.Hint(Lang.Text("Launch.Home.MultiSelect.Entered"), HintType.Info);
+    }
+
+    private void ExitMultiSelect()
+    {
+        _multiSelectMode = false;
+        _multiSelected.Clear();
+        PanMultiSelect.Visibility = Visibility.Collapsed;
+        BuildInstanceListItems();
+    }
+
+    private void RefreshMultiSelectBar()
+    {
+        if (LabMultiSelect is null) return;
+        LabMultiSelect.Text = Lang.Text("Launch.Home.MultiSelect.Count", Lang.Number(_multiSelected.Count, "N0"));
+    }
+
+    private void TextSearchInstance_TextChanged(object sender, RoutedEventArgs e)
+    {
+        if (!IsLoaded) return;
+        BuildInstanceListItems();
+    }
+
+    private void BtnGoDownload_Click(object sender, MouseButtonEventArgs e) =>
+        ModMain.frmMain.PageChange(FormMain.PageType.Download, FormMain.PageSubType.DownloadInstall);
+
+    private void BtnAddFolder_Click(object sender, MouseButtonEventArgs e) => AddFolderFlow();
+
+    private void BtnMultiCancel_Click(object sender, MouseButtonEventArgs e) => ExitMultiSelect();
+
+    private void BtnMultiDelete_Click(object sender, MouseButtonEventArgs e)
+    {
+        var list = StackInstanceList.Children.OfType<MyListItem>()
+            .Where(item => item.Tag is McInstance inst && _multiSelected.Contains(inst.PathInstance))
+            .Select(item => (McInstance)item.Tag)
+            .ToList();
+        DeleteInstances(list);
+    }
+
+    /// <summary>
+    ///     添加已有 Minecraft 文件夹（与实例选择页的“添加文件夹”流程一致）。
+    /// </summary>
+    private void AddFolderFlow()
+    {
+        if (ModNet.HasDownloadingTask())
+        {
+            HintService.Hint(Lang.Text("Select.Folder.CannotAddWhileDownloading"), HintType.Error);
+            return;
+        }
+
+        var path = SystemDialogs.SelectFolder();
+        if (string.IsNullOrEmpty(path)) return;
+        if (path.Contains('!') || path.Contains(';'))
+        {
+            HintService.Hint(Lang.Text("Select.Folder.InvalidPathChars"), HintType.Error);
+            return;
+        }
+
+        var parts = path.TrimEnd('\\').Split('\\');
+        var defaultName = parts.Last() == ".minecraft"
+            ? parts.Length >= 3 ? parts[^2] : ""
+            : parts.Last();
+        if (defaultName.Length > 40) defaultName = defaultName[..39];
+        var name = ModMain.MyMsgBoxInput(Lang.Text("Select.Folder.InputDisplayName.Title"),
+            Lang.Text("Select.Folder.InputDisplayName.Message"), defaultName,
+            [new NullOrWhiteSpaceValidator(), new StringLengthValidator(), new BlacklistValidator([">", "|"])]);
+        if (string.IsNullOrWhiteSpace(name)) return;
+        PageSelectLeft.AddFolder(path, name, true);
+    }
+
+    /// <summary>
+    ///     把文件夹设为当前文件夹，并刷新实例列表。
+    /// </summary>
+    private void SwitchFolder(ModFolder.McFolder folder)
+    {
+        if (IsCurrentFolder(folder)) return;
+        States.Game.SelectedFolder = folder.Location.Replace(ModBase.exePath, "$");
+        ModFolder.mcFolderSelected = folder.Location;
+        ModFolder.mcFolderListLoader.Start(isForceRestart: true);
+        ModLoader.LoaderFolderRun(ModInstanceList.mcInstanceListLoader, folder.Location,
+            ModLoader.LoaderFolderRunType.ForceRun, 1, @"versions\");
+        BuildInstanceListItems();
+    }
+
+    /// <summary>
+    ///     从列表中移除文件夹（不删除磁盘文件）。
+    /// </summary>
+    private void RemoveFolder(ModFolder.McFolder folder)
+    {
+        var folders = States.Game.Folders.Split('|', StringSplitOptions.RemoveEmptyEntries).ToList();
+        var index = folders.FindIndex(f => f.EndsWith(folder.Location));
+        if (index < 0) return;
+        folders.RemoveAt(index);
+        States.Game.Folders = string.Join("|", folders);
+        // 移除的正好是当前文件夹时，改选剩下的第一个
+        if (IsCurrentFolder(folder))
+        {
+            var next = ModFolder.mcFolderList.FirstOrDefault(f => !IsCurrentFolder(f));
+            if (next is not null)
+                States.Game.SelectedFolder = next.Location.Replace(ModBase.exePath, "$");
+        }
+
+        HintService.Hint(Lang.Text("Launch.Home.Folder.Removed", folder.Name), HintType.Success);
+        ModFolder.mcFolderListLoader.Start(isForceRestart: true);
+        BuildInstanceListItems();
     }
 
     private void SwitchInstance(McInstance instance)
@@ -130,14 +491,27 @@ public partial class PageLaunchRight : IRefreshable
             PageInstanceOverall.OpenVersionFolder(instance);
             return;
         }
+
         try
         {
+            // 实例可能属于另一个 Minecraft 文件夹，先切换文件夹，否则启动时用的根目录会错
+            var folder = ModFolder.mcFolderList.FirstOrDefault(f =>
+                (instance.PathInstance ?? "").StartsWith(f.Location, StringComparison.OrdinalIgnoreCase));
+            if (folder is not null && !IsCurrentFolder(folder))
+            {
+                ModBase.Log("[Launch] 切换 Minecraft 文件夹：" + folder.Location);
+                States.Game.SelectedFolder = folder.Location.Replace(ModBase.exePath, "$");
+                ModFolder.mcFolderSelected = folder.Location;
+                ModFolder.mcFolderListLoader.Start(isForceRestart: true);
+            }
+
             instance.Load();
             if (!instance.Check())
             {
                 PageInstanceOverall.OpenVersionFolder(instance);
                 return;
             }
+
             ModInstanceList.McMcInstanceSelected = instance;
             States.Game.SelectedInstance = instance.Name;
             UpdateInstanceListUI();
@@ -148,6 +522,68 @@ public partial class PageLaunchRight : IRefreshable
             ModBase.Log(ex, "切换实例失败");
         }
     }
+
+    /// <summary>
+    ///     打开指定实例的实例设置页。
+    /// </summary>
+    private void EditInstance(McInstance instance)
+    {
+        try
+        {
+            instance.Load();
+            ModInstanceList.McMcInstanceSelected = instance;
+            States.Game.SelectedInstance = instance.Name;
+            PageInstanceLeft.McInstance = instance;
+            ModMain.frmMain.PageChange(FormMain.PageType.InstanceSetup);
+        }
+        catch (Exception ex)
+        {
+            ModBase.Log(ex, "打开实例设置失败");
+        }
+    }
+
+    /// <summary>
+    ///     删除实例（含磁盘文件），需要用户确认。
+    /// </summary>
+    private void DeleteInstances(IReadOnlyCollection<McInstance> instances)
+    {
+        if (instances.Count == 0) return;
+        var names = string.Join("\n", instances.Select(i => i.Name));
+        if (ModMain.MyMsgBox(Lang.Text("Launch.Home.Instance.Delete.Warning", names),
+                Lang.Text("Launch.Home.Instance.Delete.Title"),
+                Lang.Text("Common.Action.Cancel"), Lang.Text("Common.Action.Confirm"),
+                Lang.Text("Common.Action.Cancel")) != 2)
+            return;
+
+        var deleted = 0;
+        foreach (var instance in instances)
+        {
+            try
+            {
+                if (Directory.Exists(instance.PathInstance))
+                    Directory.Delete(instance.PathInstance, true);
+                if ((ModInstanceList.McMcInstanceSelected?.PathInstance ?? "") == instance.PathInstance)
+                    ModInstanceList.McMcInstanceSelected = null;
+                deleted++;
+            }
+            catch (Exception ex)
+            {
+                ModBase.Log(ex, "删除实例失败：" + instance.Name);
+            }
+        }
+
+        HintService.Hint(Lang.Text("Launch.Home.Instance.Delete.Success", Lang.Number(deleted, "N0")),
+            HintType.Success);
+        _multiSelectMode = false;
+        _multiSelected.Clear();
+        PanMultiSelect.Visibility = Visibility.Collapsed;
+        ModLoader.LoaderFolderRun(ModInstanceList.mcInstanceListLoader, ModFolder.mcFolderSelected,
+            ModLoader.LoaderFolderRunType.ForceRun, 1, @"versions\");
+        BuildInstanceListItems();
+        ModMain.frmLaunchLeft.RefreshButtonsUI();
+    }
+
+    #endregion
 
     private void Init()
     {

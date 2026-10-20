@@ -42,6 +42,24 @@ public enum ColorTheme
 }
 
 /// <summary>
+/// 自定义主题的渐变色方向。
+/// </summary>
+public enum ThemeGradientDirection
+{
+    /// <summary>从左到右</summary>
+    Horizontal = 0,
+
+    /// <summary>从上到下</summary>
+    Vertical = 1,
+
+    /// <summary>左上到右下</summary>
+    DiagonalDown = 2,
+
+    /// <summary>左下到右上</summary>
+    DiagonalUp = 3
+}
+
+/// <summary>
 /// 游戏窗口大小模式
 /// </summary>
 public enum GameWindowSizeMode

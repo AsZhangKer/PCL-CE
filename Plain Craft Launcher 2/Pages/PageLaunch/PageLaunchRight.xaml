@@ -5,7 +5,45 @@
     <local:MyScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" x:Name="PanBack">
         <StackPanel Name="PanMain" Margin="25,25,25,10" Grid.IsSharedSizeScope="True">
             <local:MyCard Margin="0,0,0,15" Title="{DynamicResource Launch.Home.SelectInstance}" x:Name="PanInstanceListCard">
-                <StackPanel x:Name="StackInstanceList" Margin="20,38,20,16" />
+                <StackPanel x:Name="PanInstanceRoot" Margin="20,38,20,16">
+                    <!-- 搜索 + 下载入口 + 添加文件夹 -->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <local:MyTextBox x:Name="TextSearchInstance" Grid.Column="0" Height="30" MaxLines="1"
+                                         AcceptsReturn="False" VerticalContentAlignment="Center"
+                                         HintText="{DynamicResource Launch.Home.Search.Hint}"
+                                         ValidatedTextChanged="TextSearchInstance_TextChanged" />
+                        <local:MyButton x:Name="BtnGoDownload" Grid.Column="1" Height="30" Margin="10,0,0,0"
+                                        Padding="14,0" Text="{DynamicResource Launch.Home.Download}"
+                                        Click="BtnGoDownload_Click" />
+                        <local:MyButton x:Name="BtnAddFolder" Grid.Column="2" Height="30" Margin="10,0,0,0"
+                                        Padding="14,0" Text="{DynamicResource Launch.Home.Folder.Add}"
+                                        Click="BtnAddFolder_Click" />
+                    </Grid>
+                    <!-- 多选工具条（长按实例进入） -->
+                    <Grid x:Name="PanMultiSelect" Visibility="Collapsed" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="LabMultiSelect" VerticalAlignment="Center" FontSize="12.5" Opacity="0.7" />
+                        <local:MyButton Grid.Column="1" x:Name="BtnMultiDelete" Height="28" Padding="12,0"
+                                        ColorType="Red" Text="{DynamicResource Launch.Home.MultiSelect.Delete}"
+                                        Click="BtnMultiDelete_Click" />
+                        <local:MyButton Grid.Column="2" x:Name="BtnMultiCancel" Height="28" Margin="8,0,0,0"
+                                        Padding="12,0" Text="{DynamicResource Common.Action.Cancel}"
+                                        Click="BtnMultiCancel_Click" />
+                    </Grid>
+                    <!-- 按文件夹分组的实例列表 -->
+                    <StackPanel x:Name="StackInstanceList" />
+                    <TextBlock x:Name="LabInstanceEmpty" Visibility="Collapsed" FontSize="12.5" Opacity="0.6"
+                               Margin="2,8,0,4" Text="{DynamicResource Launch.Home.Instance.Empty}" />
+                </StackPanel>
             </local:MyCard>
             <StackPanel x:Name="PanCustom" />
             <!-- 社区版公告提示已移除 -->
