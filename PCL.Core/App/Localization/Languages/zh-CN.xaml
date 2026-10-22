@@ -2800,8 +2800,8 @@
     <sys:String x:Key="Setup.Launch.Options.MsAuth.Label">正版验证方式</sys:String>
     <sys:String x:Key="Setup.Launch.Options.MsAuth.ToolTip">Web 账户管理器的正版验证流程更为简单，而设备代码流允许你在任意设备上打开网页进行验证。&#xA;如果使用 Web 账户管理器登录遇到问题，可以尝试使用设备代码流。&#xA;如果正在公共计算机上临时登录账号，推荐使用设备代码流。&#xA;&#xA;由于部分依赖组件存在较多问题，该选项暂时强制指定为设备代码流。</sys:String>
     <sys:String x:Key="Setup.Launch.Options.MsAuth.WebManager">Web 账户管理器（暂时强制设备代码流）</sys:String>
-    <sys:String x:Key="Setup.Launch.Options.MsAuth.LegacyShell">临时借用公共 ClientID 登录（绕过 Mojang 白名单审核）</sys:String>
-    <sys:String x:Key="Setup.Launch.Options.MsAuth.LegacyShell.ToolTip">开启后改用旧版 Live 认证流程，并借用 Nintendo Switch 版的公共 ClientID，因此不需要等待 Mojang 白名单审核即可完成正版登录。&#xA;&#xA;注意：&#xA;· 这是借用他人的应用身份，不属于正规做法，被 Mojang 发现后可能导致登录被拒；&#xA;· 该公共 ID 随时可能被 Mojang 收紧，届时会提示「借用的公共 ClientID 已被拒绝」；&#xA;· 启用期间，「个性化」里填写的微软 Client ID 不参与登录，自家应用通过审核后请关闭本项再使用。</sys:String>
+    <sys:String x:Key="Setup.Launch.Options.MsAuth.LegacyShell">临时借用公共 ClientID 登录(兜底方案,默认关闭)</sys:String>
+    <sys:String x:Key="Setup.Launch.Options.MsAuth.LegacyShell.ToolTip">仅在自建 ClientID 被 Mojang 拒绝时的兜底手段,默认关闭。&#xA;开启后改用旧版 Live 认证流程,并借用 Nintendo Switch 版的公共 ClientID,因此不依赖 Mojang 白名单审核。&#xA;&#xA;本启动器的自建应用已于 2026-10-22 通过 Mojang 白名单审核,正常情况下无需开启本项。&#xA;&#xA;注意:&#xA;· 这是借用他人的应用身份,不属于正规做法,被 Mojang 发现后可能导致登录被拒;&#xA;· 该公共 ID 随时可能被 Mojang 收紧,届时会提示「借用的公共 ClientID 已被拒绝」;&#xA;· 启用期间,「个性化」里填写的微软 Client ID 不参与登录。</sys:String>
     <sys:String x:Key="Setup.Launch.Options.Priority.AboveNormal">高（优先保证游戏运行，游戏性能更佳，但可能造成其他程序卡顿）</sys:String>
     <sys:String x:Key="Setup.Launch.Options.Priority.BelowNormal">低（优先保证其他程序运行，但可能让游戏卡顿，适合挂机时使用）</sys:String>
     <sys:String x:Key="Setup.Launch.Options.Priority.High">极高（谨慎使用，可能严重影响其他程序运行）</sys:String>

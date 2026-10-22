@@ -551,10 +551,10 @@ public static partial class Config
 
         /// <summary>
         /// 正版登录：临时改用旧版 Live 认证流程，借用已通过 Mojang 审核的公共 Client ID。<br/>
-        /// true = 启用（默认，自建应用尚未通过白名单审核时先用这条路登录）；false = 改回自建 Azure 应用的 v2 设备码流程。<br/>
-        /// 自建应用审核通过后应关闭本项。
+        /// false = 使用自建 Azure 应用的 v2 设备码流程(默认,自建应用已于 2026-10-22 通过 Mojang 白名单审核);<br/>
+        /// true = 借用 Nintendo Switch 公共 Client ID 的旧版 Live 流程,仅在自建应用被 Mojang 拒绝时作兜底。请勿在公开分发构建中启用。
         /// </summary>
-        [ConfigItem<bool>("LoginMsLegacyShell", true, ConfigSource.Local)] public partial bool LoginMsLegacyShell { get; set; }
+        [ConfigItem<bool>("LoginMsLegacyShell", false, ConfigSource.Local)] public partial bool LoginMsLegacyShell { get; set; }
     }
 
     /// <summary>
